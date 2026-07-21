@@ -267,8 +267,8 @@ CENTRAL_PAGE = """
   body { font-family:'Segoe UI',sans-serif; background:#f1f5f9; min-height:100vh; padding:20px; }
   .top { text-align:center; margin-bottom:15px; }
   h1 { color:#0f172a; }
-  .nav-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; max-width:900px; margin:0 auto 25px; }
-  .nav-card { background:#1e293b; border-radius:15px; padding:20px; text-align:center; text-decoration:none; color:#fff; border:2px solid #334155; transition:.3s; cursor:pointer; display:block; }
+  .nav-grid { display:flex; justify-content:center; gap:12px; margin:0 auto 25px; max-width:650px; }
+  .nav-card { width:240px; background:#1e293b; border-radius:15px; padding:20px; text-align:center; text-decoration:none; color:#fff; border:2px solid #334155; transition:.3s; cursor:pointer; display:block; }
   .nav-card:hover { transform:scale(1.04); }
   .nav-card.pub:hover { border-color:#22c55e; background:#065f46; }
   .nav-card.tec:hover { border-color:#38bdf8; background:#0c4a6e; }
