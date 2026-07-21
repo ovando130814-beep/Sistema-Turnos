@@ -323,10 +323,67 @@ ADMIN_PAGE = """
 </html>
 """
 
+# ─── PANEL CENTRAL ─────────────────────────────────────────────
+CENTRAL_PAGE = """
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Central - Turnos</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI',sans-serif; background:#0f172a; color:#fff; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:30px; }
+  h1 { color:#38bdf8; font-size:2em; margin-bottom:10px; }
+  p { color:#94a3b8; margin-bottom:30px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:20px; width:100%; max-width:900px; }
+  .card { background:#1e293b; border-radius:20px; padding:35px; text-align:center; text-decoration:none; color:#fff; border:3px solid #334155; transition:.3s; cursor:pointer; }
+  .card:hover { transform:scale(1.05); }
+  .card.public:hover { border-color:#22c55e; background:#065f46; }
+  .card.tech:hover { border-color:#38bdf8; background:#0c4a6e; }
+  .card.admin:hover { border-color:#fbbf24; background:#78350f; }
+  .card .icon { font-size:3.5em; margin-bottom:15px; }
+  .card .tit { font-size:1.5em; font-weight:bold; }
+  .card .desc { font-size:0.9em; color:#94a3b8; margin-top:8px; }
+  .url { color:#64748b; font-size:0.85em; margin-top:30px; text-align:center; }
+  .url a { color:#38bdf8; }
+</style>
+</head>
+<body>
+  <h1>🏥 Sistema de Turnos</h1>
+  <p>Seleccione una vista para abrir</p>
+  <div class="grid">
+    <a class="card public" href="/" target="_blank">
+      <div class="icon">🖥️</div>
+      <div class="tit">Pantalla Pública</div>
+      <div class="desc">Muestra turnos, llamado y anuncios</div>
+    </a>
+    <a class="card tech" href="/tecnico" target="_blank">
+      <div class="icon">🔧</div>
+      <div class="tit">Panel de Técnicos</div>
+      <div class="desc">Selección y vista individual</div>
+    </a>
+    <a class="card admin" href="/admin" target="_blank">
+      <div class="icon">👑</div>
+      <div class="tit">Administración</div>
+      <div class="desc">Activar/desactivar, reporte diario</div>
+    </a>
+  </div>
+  <div class="url">
+    URLs directas: <a href="/">/</a> · <a href="/tecnico">/tecnico</a> · <a href="/admin">/admin</a>
+  </div>
+</body>
+</html>
+"""
+
 # ─── RUTAS ──────────────────────────────────────────────────────
 @app.route("/")
 def display():
     return DISPLAY_PAGE
+
+@app.route("/central")
+def central():
+    return CENTRAL_PAGE
 
 @app.route("/tecnico")
 def tech_select():
@@ -404,6 +461,7 @@ def reset():
 if __name__ == "__main__":
     print("=" * 50)
     print("  SISTEMA DE TURNOS")
+    print("  Central:   http://localhost:5000/central")
     print("  Pantalla:  http://localhost:5000")
     print("  Tecnico:   http://localhost:5000/tecnico")
     print("  Admin:     http://localhost:5000/admin")
