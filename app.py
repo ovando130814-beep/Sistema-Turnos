@@ -356,7 +356,7 @@ CENTRAL_PAGE = """
   .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:15px; max-width:1100px; margin:0 auto 20px; }
   .card { background:#fff; border-radius:15px; padding:20px; text-align:center; box-shadow:0 3px 10px rgba(0,0,0,.1); border:2px solid #e2e8f0; }
   .card.off { opacity:0.5; }
-  .card .vnum { font-size:1em; color:#64748b; }
+  .card .vnum { font-size:1em; color:#0f172a; font-weight:bold; }
   .card .current { font-size:2.5em; font-weight:bold; color:#0ea5e9; margin:8px 0; }
   .card .current.none { color:#cbd5e1; }
   .card .pend { color:#f59e0b; font-weight:bold; font-size:0.9em; }
@@ -442,12 +442,23 @@ CENTRAL_PAGE = """
       const val = asistencia[i] || 'sede';
       const div = document.createElement('div');
       div.className = 'asist-item';
-      div.innerHTML =
-        '<span class="name">' + techNames[i] + '</span>' +
-        '<div class="btns">' +
-        '<button class="' + (val === 'sede' ? 'on' : '') + '" onclick="toggleAsist(' + i + ",'sede'" + ')">🏢 Sede</button>' +
-        '<button class="' + (val === 'movil' ? 'on' : '') + '" onclick="toggleAsist(' + i + ",'movil'" + ')">🚐 Móvil</button>' +
-        '</div>';
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = techNames[i];
+      div.appendChild(name);
+      const btns = document.createElement('div');
+      btns.className = 'btns';
+      const btnSede = document.createElement('button');
+      btnSede.className = val === 'sede' ? 'on' : '';
+      btnSede.textContent = '🏢 Sede';
+      btnSede.onclick = function() { toggleAsist(i, 'sede'); };
+      const btnMovil = document.createElement('button');
+      btnMovil.className = val === 'movil' ? 'on' : '';
+      btnMovil.textContent = '🚐 Móvil';
+      btnMovil.onclick = function() { toggleAsist(i, 'movil'); };
+      btns.appendChild(btnSede);
+      btns.appendChild(btnMovil);
+      div.appendChild(btns);
       grid.appendChild(div);
     }
   }
