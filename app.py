@@ -204,35 +204,34 @@ TECH_PAGE = """
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Share Tech Mono','Courier New',monospace; background:radial-gradient(ellipse at center,#0a0f1e 0%,#02040a 100%); min-height:100vh; padding:20px; overflow-x:hidden; }
+  body { font-family:'Share Tech Mono','Courier New',monospace; background:radial-gradient(ellipse at center,#0a0f1e 0%,#02040a 100%); min-height:100vh; padding:20px; overflow-x:hidden; display:flex; align-items:center; justify-content:center; }
   body::before { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,170,0.03) 2px,rgba(0,255,170,0.03) 4px); pointer-events:none; }
   .scanline { position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.15) 3px,rgba(0,0,0,0.15) 4px); pointer-events:none; }
-  .card { max-width:520px; margin:20px auto; background:linear-gradient(135deg,#0f1a2e,#060d1a); border-radius:16px; padding:30px; text-align:center; border:1px solid rgba(0,255,170,0.2); box-shadow:0 0 40px rgba(0,255,170,0.06),inset 0 0 60px rgba(0,255,170,0.02); position:relative; }
+  .card { max-width:520px; width:100%; margin:0; background:linear-gradient(135deg,#0f1a2e,#060d1a); border-radius:16px; padding:30px; text-align:center; border:1px solid rgba(0,255,170,0.2); box-shadow:0 0 40px rgba(0,255,170,0.06),inset 0 0 60px rgba(0,255,170,0.02); position:relative; }
   .card::after { content:''; position:absolute; top:-1px; left:20%; right:20%; height:2px; background:linear-gradient(90deg,transparent,#00ffaa,transparent); }
   .header { display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:5px; }
   .header .icon { font-size:2em; filter:drop-shadow(0 0 10px rgba(0,255,170,0.3)); }
   .header .name { color:#00ffaa; font-size:1.2em; letter-spacing:2px; text-shadow:0 0 15px rgba(0,255,170,0.2); }
-  .status-bar { display:flex; justify-content:space-between; align-items:center; background:rgba(0,255,170,0.05); border:1px solid rgba(0,255,170,0.1); border-radius:8px; padding:10px 15px; margin:15px 0; }
-  .status-bar .label { color:#4a6a7a; font-size:0.8em; letter-spacing:1px; }
-  .status-bar .value { color:#00ffaa; font-size:1.1em; }
-  .status-bar .value.offline { color:#ff4466; }
+  .status-bar { display:flex; justify-content:space-between; align-items:center; background:rgba(0,255,170,0.07); border:1px solid rgba(0,255,170,0.15); border-radius:8px; padding:12px 15px; margin:15px 0; }
+  .status-bar .label { color:#b0d4e8; font-size:0.9em; letter-spacing:1px; }
+  .status-bar .label strong { color:#00ffaa; }
   .pend-list { text-align:left; margin:10px 0; max-height:260px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:#00ffaa transparent; }
   .pend-list::-webkit-scrollbar { width:4px; }
   .pend-list::-webkit-scrollbar-thumb { background:#00ffaa; border-radius:2px; }
   .pend-item { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:rgba(0,255,170,0.03); border-radius:8px; margin-bottom:6px; border:1px solid rgba(0,255,170,0.08); transition:.3s; }
   .pend-item:hover { border-color:rgba(0,255,170,0.2); background:rgba(0,255,170,0.06); }
-  .pend-item .pos { color:#4a6a7a; font-size:0.85em; }
-  .pend-item .num { font-size:1.6em; font-weight:bold; color:#00cc88; text-shadow:0 0 10px rgba(0,255,170,0.15); }
-  .empty-pend { color:#1a3340; text-align:center; padding:25px; font-size:1em; letter-spacing:1px; }
-  .empty-pend .led { display:inline-block; width:8px; height:8px; background:#1a3340; border-radius:50%; margin-right:8px; vertical-align:middle; animation:blink 2s infinite; }
+  .pend-item .pos { color:#8ab4c8; font-size:0.9em; }
+  .pend-item .num { font-size:1.6em; font-weight:bold; color:#00ffaa; text-shadow:0 0 12px rgba(0,255,170,0.25); }
+  .empty-pend { color:#5a8a9a; text-align:center; padding:25px; font-size:1em; letter-spacing:1px; }
+  .empty-pend .led { display:inline-block; width:8px; height:8px; background:#5a8a9a; border-radius:50%; margin-right:8px; vertical-align:middle; animation:blink 2s infinite; }
   @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
   .btn { width:100%; padding:16px; background:linear-gradient(135deg,#00cc88,#009966); color:#02040a; border:none; border-radius:8px; font-family:inherit; font-size:1.2em; font-weight:bold; cursor:pointer; letter-spacing:2px; text-transform:uppercase; transition:.3s; box-shadow:0 0 20px rgba(0,255,170,0.12); margin-top:12px; }
   .btn:hover:not(:disabled) { background:linear-gradient(135deg,#00ffaa,#00cc88); box-shadow:0 0 30px rgba(0,255,170,0.25); transform:translateY(-2px); }
-  .btn:disabled { background:#0a1520; color:#1a3340; cursor:not-allowed; box-shadow:none; border:1px solid #1a3340; }
-  .btn-off { background:#0a1520; color:#1a3340; cursor:not-allowed; box-shadow:none; border:1px solid #1a3340; }
+  .btn:disabled { background:#0a1520; color:#4a7a6a; cursor:not-allowed; box-shadow:none; border:1px solid #1a3340; }
+  .btn-off { background:#0a1520; color:#4a7a6a; cursor:not-allowed; box-shadow:none; border:1px solid #1a3340; }
   .off-msg { color:#ff4466; font-size:0.9em; margin:12px 0; text-shadow:0 0 10px rgba(255,68,102,0.2); }
-  .back { display:block; text-align:center; margin-top:18px; color:#1a3340; text-decoration:none; font-size:0.85em; letter-spacing:1px; transition:.3s; }
-  .back:hover { color:#4a6a7a; }
+  .back { display:block; text-align:center; margin-top:18px; color:#5a8a9a; text-decoration:none; font-size:0.85em; letter-spacing:1px; transition:.3s; }
+  .back:hover { color:#b0d4e8; }
   .divider { height:1px; background:linear-gradient(90deg,transparent,rgba(0,255,170,0.15),transparent); margin:10px 0; }
 </style>
 </head>
