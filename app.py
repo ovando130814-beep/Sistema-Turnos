@@ -234,6 +234,11 @@ TECH_PAGE = """
   .back { display:block; text-align:center; margin-top:18px; color:#5a8a9a; text-decoration:none; font-size:0.85em; letter-spacing:1px; transition:.3s; }
   .back:hover { color:#b0d4e8; }
   .divider { height:1px; background:linear-gradient(90deg,transparent,rgba(0,255,170,0.15),transparent); margin:10px 0; }
+  .asist-tech { margin:12px 0; display:flex; align-items:center; justify-content:center; gap:10px; }
+  .asist-tech .lbl { color:#5a8a9a; font-size:0.8em; letter-spacing:1px; }
+  .asist-tech button { padding:6px 18px; border-radius:6px; border:1px solid #1a3340; background:#050d14; color:#4a6a7a; font-family:inherit; font-size:0.85em; cursor:pointer; transition:.3s; letter-spacing:1px; }
+  .asist-tech button.on { border-color:#00ffaa; background:rgba(0,255,170,0.1); color:#00ffaa; }
+  .asist-tech button:hover { border-color:rgba(0,255,170,0.3); }
 </style>
 </head>
 <body>
@@ -247,6 +252,13 @@ TECH_PAGE = """
     <div class="status-bar">
       <span class="label">👤 Tienes <strong id="count">0</strong> usuarios en espera</span>
     </div>
+    <div class="divider"></div>
+    <div class="asist-tech">
+      <span class="lbl">📍 SOPORTE:</span>
+      <button id="asistSede" onclick="setAsist('sede')">🏢 Sede</button>
+      <button id="asistMovil" onclick="setAsist('movil')">🚐 Móvil</button>
+    </div>
+    <div class="divider"></div>
     <div class="pend-list" id="pendList">
       <div class="empty-pend"><span class="led"></span>SIN TURNOS EN ESPERA</div>
     </div>
@@ -291,8 +303,22 @@ TECH_PAGE = """
       actualizar();
     });
   }
+  function initAsist() {
+    fetch('/api/estado').then(r=>r.json()).then(data => {
+      const val = (data.attendance_today || {})[v-1] || 'sede';
+      document.getElementById('asistSede').className = val === 'sede' ? 'on' : '';
+      document.getElementById('asistMovil').className = val === 'movil' ? 'on' : '';
+    });
+  }
+  function setAsist(tipo) {
+    const obj = {}; obj[v-1] = tipo;
+    fetch('/api/asistencia', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({registro: obj})})
+      .then(r=>r.json()).then(d => {
+        if (d.success) { initAsist(); }
+      });
+  }
   function actualizar() { fetch('/api/estado').then(r=>r.json()).then(render); }
-  actualizar(); setInterval(actualizar, 1500);
+  initAsist(); actualizar(); setInterval(actualizar, 1500);
 </script>
 </body>
 </html>
@@ -417,9 +443,9 @@ CENTRAL_PAGE = """
   <div id="reporteSemanal"></div>
 
   <table id="report">
-    <thead><tr><th>Técnico</th><th>Estado</th><th>Espera / Atendidos</th></tr></thead>
+    <thead><tr><th>Técnico</th><th>Estado</th><th>Soporte</th><th>Espera / Atendidos</th></tr></thead>
     <tbody id="reportBody"></tbody>
-    <tfoot><tr><th>Total</th><th></th><th id="totalAtt">0</th></tr></tfoot>
+    <tfoot><tr><th>Total</th><th></th><th></th><th id="totalAtt">0</th></tr></tfoot>
   </table>
 
   <a href="/" class="back">← Pantalla pública</a> | <a href="/logout" class="back">Cerrar sesión</a>
@@ -510,8 +536,9 @@ CENTRAL_PAGE = """
       const first = pend.length > 0 ? pend[0] : null;
       const div = document.createElement('div');
       div.className = 'card' + (on ? '' : ' off');
+      const asIcon = ((data.attendance_today||{})[i]||'') === 'movil' ? '🚐' : ((data.attendance_today||{})[i]||'') === 'sede' ? '🏢' : '';
       div.innerHTML =
-        '<div class="vnum">' + techNames[i] + '</div>' +
+        '<div class="vnum">' + techNames[i] + ' ' + asIcon + '</div>' +
         '<div class="current ' + (first ? '' : 'none') + '">' + (first ? first : '---') + '</div>' +
         '<div class="pend">En espera: ' + pend.length + '</div>' +
         '<div class="att">Atendidos: ' + data.attended[i] + '</div>' +
@@ -522,8 +549,9 @@ CENTRAL_PAGE = """
     let total = 0;
     for (let i = 0; i < 8; i++) {
       total += data.attended[i];
+      const as2 = ((data.attendance_today||{})[i]||'') === 'movil' ? '🚐 Móvil' : ((data.attendance_today||{})[i]||'') === 'sede' ? '🏢 Sede' : '—';
       const tr = document.createElement('tr');
-      tr.innerHTML = '<td>' + techNames[i] + '</td><td>' + (data.active[i] ? '🟢 Activo' : '⚪ Inactivo') + '</td><td>Espera: ' + data.pending[i].length + ' / Atend: ' + data.attended[i] + '</td>';
+      tr.innerHTML = '<td>' + techNames[i] + '</td><td>' + (data.active[i] ? '🟢 Activo' : '⚪ Inactivo') + '</td><td>' + as2 + '</td><td>Espera: ' + data.pending[i].length + ' / Atend: ' + data.attended[i] + '</td>';
       rb.appendChild(tr);
     }
     document.getElementById('totalAtt').textContent = total;
