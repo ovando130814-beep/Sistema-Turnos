@@ -176,9 +176,6 @@ TECH_LOGIN = """
   .card a { display:block; margin-top:20px; color:#1a3340; text-decoration:none; font-size:0.85em; transition:.3s; }
   .card a:hover { color:#4a6a7a; }
   .scanline { position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.15) 3px,rgba(0,0,0,0.15) 4px); pointer-events:none; }
-  .tech-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:18px 0; }
-  .tech-btn { padding:10px; background:rgba(0,255,170,0.06); border:1px solid rgba(0,255,170,0.15); border-radius:6px; color:#00ffaa; font-family:inherit; font-size:0.9em; cursor:pointer; transition:.3s; letter-spacing:1px; text-align:center; }
-  .tech-btn:hover { background:rgba(0,255,170,0.15); border-color:#00ffaa; transform:translateY(-1px); box-shadow:0 0 15px rgba(0,255,170,0.1); }
 </style>
 </head>
 <body>
@@ -187,27 +184,12 @@ TECH_LOGIN = """
     <div class="monitor">🖥️</div>
     <h1>Acceso Técnico</h1>
     <div class="sub">SISTEMA DE TURNOS v2.0</div>
-    <form method="POST" action="/tecnico" id="techForm">
-      <input type="text" name="username" id="techInput" placeholder="INGRESE SU NOMBRE" required autofocus>
+    <form method="POST" action="/tecnico">
+      <input type="text" name="username" placeholder="INGRESE SU NOMBRE" required autofocus>
       <button type="submit">INGRESAR</button>
     </form>
-    <div class="divider" style="height:1px;background:linear-gradient(90deg,transparent,rgba(0,255,170,0.15),transparent);margin:12px 0;"></div>
-    <div style="color:#4a6a7a;font-size:0.75em;letter-spacing:1px;margin-bottom:10px;">SELECCIONE SU NOMBRE</div>
-    <div class="tech-grid" id="techGrid"></div>
     {% if error %}<div class="error">! {{ error }} !</div>{% endif %}
   </div>
-  <script>
-    const names = ['Mauricio Amaya','Julio Castillo','Jorge Hernandez','Yesica Bonilla','Alba Zelaya','Manuel Herrera','William Espiñal','Rene Quintanilla'];
-    const grid = document.getElementById('techGrid');
-    names.forEach(n => {
-      const btn = document.createElement('button');
-      btn.className = 'tech-btn';
-      btn.textContent = n;
-      btn.type = 'button';
-      btn.onclick = () => { document.getElementById('techInput').value = n; document.getElementById('techForm').submit(); };
-      grid.appendChild(btn);
-    });
-  </script>
 </body>
 </html>
 """
