@@ -254,7 +254,7 @@ TECH_PAGE = """
 </html>
 """
 
-# ─── ADMIN (activar/desactivar + informe) ─────────────────────
+# ─── ADMIN (central + activar/desactivar + informe) ───────────
 ADMIN_PAGE = """
 <!DOCTYPE html>
 <html lang="es">
@@ -267,6 +267,15 @@ ADMIN_PAGE = """
   body { font-family:'Segoe UI',sans-serif; background:#f1f5f9; min-height:100vh; padding:20px; }
   .top { text-align:center; margin-bottom:15px; }
   h1 { color:#0f172a; }
+  .nav-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; max-width:900px; margin:0 auto 25px; }
+  .nav-card { background:#1e293b; border-radius:15px; padding:20px; text-align:center; text-decoration:none; color:#fff; border:2px solid #334155; transition:.3s; cursor:pointer; display:block; }
+  .nav-card:hover { transform:scale(1.04); }
+  .nav-card.pub:hover { border-color:#22c55e; background:#065f46; }
+  .nav-card.tec:hover { border-color:#38bdf8; background:#0c4a6e; }
+  .nav-card.adm { border-color:#fbbf24; }
+  .nav-card .icon { font-size:2em; margin-bottom:5px; }
+  .nav-card .tit { font-size:1.1em; font-weight:bold; }
+  .section-title { text-align:center; font-size:1.2em; color:#0f172a; margin:20px 0 10px; font-weight:bold; border-top:2px solid #e2e8f0; padding-top:20px; }
   .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:15px; max-width:1100px; margin:0 auto 20px; }
   .card { background:#fff; border-radius:15px; padding:20px; text-align:center; box-shadow:0 3px 10px rgba(0,0,0,.1); border:2px solid #e2e8f0; }
   .card.off { opacity:0.5; }
@@ -287,14 +296,30 @@ ADMIN_PAGE = """
   .back { display:block; text-align:center; color:#0ea5e9; text-decoration:none; }
   @media print {
     body { background:#fff; }
-    .grid, .actions, .back { display:none; }
+    .nav-grid, .grid, .actions, .back { display:none; }
     table { box-shadow:none; }
   }
 </style>
 </head>
 <body>
-  <div class="top"><h1>👑 Administración de Turnos</h1></div>
+  <div class="top"><h1>🏥 Sistema de Turnos</h1></div>
 
+  <div class="nav-grid">
+    <a class="nav-card pub" href="/" target="_blank">
+      <div class="icon">🖥️</div>
+      <div class="tit">Pantalla Pública</div>
+    </a>
+    <a class="nav-card tec" href="/tecnico" target="_blank">
+      <div class="icon">🔧</div>
+      <div class="tit">Panel Técnicos</div>
+    </a>
+    <a class="nav-card adm">
+      <div class="icon">👑</div>
+      <div class="tit">Administración</div>
+    </a>
+  </div>
+
+  <div class="section-title">Control de Técnicos</div>
   <div class="grid" id="grid"></div>
 
   <div class="actions">
@@ -303,7 +328,7 @@ ADMIN_PAGE = """
   </div>
 
   <table id="report">
-    <thead><tr><th>Técnico</th><th>Estado</th><th>Atendidos hoy</th></tr></thead>
+    <thead><tr><th>Técnico</th><th>Estado</th><th>Espera / Atendidos</th></tr></thead>
     <tbody id="reportBody"></tbody>
     <tfoot><tr><th>Total</th><th></th><th id="totalAtt">0</th></tr></tfoot>
   </table>
