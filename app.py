@@ -8,9 +8,12 @@ Tecnico ve solo su ventanilla. Admin imprime informe diario.
 import threading
 import time
 from datetime import date
-from flask import Flask, render_template_string, request, jsonify, redirect
+from flask import Flask, render_template_string, request, jsonify, redirect, session
 
 app = Flask(__name__)
+app.secret_key = 'turnos-secret-key-cambiar'
+
+admins = ['Carmen Cruz', 'Edwin Ovando']
 
 lock = threading.Lock()
 state = {
@@ -83,7 +86,7 @@ DISPLAY_PAGE = """
   <div class="grid" id="grid"></div>
 
 <script>
-  const techNames = ['Mauricio Amaya', 'Julio Castillo', 'Jorge Hernandez', 'Yesica Bonilla', 'Alba Zelaya', 'Manuel Herrera', 'Pendiente 7', 'Pendiente 8'];
+  const techNames = ['Mauricio Amaya', 'Julio Castillo', 'Jorge Hernandez', 'Yesica Bonilla', 'Alba Zelaya', 'Manuel Herrera', 'William Espiñal', 'Rene Quintanilla'];
   let ultimoTs = null;
   function tomarTurno() {
     fetch('/api/tomar_turno', {method:'POST'}).then(r=>r.json()).then(d=>{
@@ -144,7 +147,7 @@ DISPLAY_PAGE = """
 """
 
 # ─── SELECCION DE TECNICO ──────────────────────────────────────
-techNames = ['Mauricio Amaya', 'Julio Castillo', 'Jorge Hernandez', 'Yesica Bonilla', 'Alba Zelaya', 'Manuel Herrera', 'Pendiente 7', 'Pendiente 8']
+techNames = ['Mauricio Amaya', 'Julio Castillo', 'Jorge Hernandez', 'Yesica Bonilla', 'Alba Zelaya', 'Manuel Herrera', 'William Espiñal', 'Rene Quintanilla']
 
 TECH_SELECT = """
 <!DOCTYPE html>
@@ -254,6 +257,39 @@ TECH_PAGE = """
 </html>
 """
 
+LOGIN_PAGE = """
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acceso - Turnos</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI',sans-serif; background:#0f172a; color:#fff; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+  .card { background:#1e293b; border-radius:20px; padding:40px; text-align:center; width:360px; border:2px solid #334155; }
+  .card h1 { color:#38bdf8; margin-bottom:20px; }
+  .card input { width:100%; padding:14px; border-radius:10px; border:2px solid #334155; background:#0f172a; color:#fff; font-size:1.1em; text-align:center; margin-bottom:15px; }
+  .card input:focus { outline:none; border-color:#38bdf8; }
+  .card button { width:100%; padding:14px; background:#38bdf8; color:#0f172a; border:none; border-radius:10px; font-size:1.2em; font-weight:bold; cursor:pointer; }
+  .card button:hover { background:#0ea5e9; }
+  .error { color:#ef4444; margin-top:10px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>🏥 Sistema de Turnos</h1>
+    <p style="color:#94a3b8; margin-bottom:20px;">Ingrese su nombre de usuario</p>
+    <form method="POST">
+      <input type="text" name="username" placeholder="Usuario" required autofocus>
+      <button type="submit">Ingresar</button>
+    </form>
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  </div>
+</body>
+</html>
+"""
+
 # ─── PANEL CENTRAL ─────────────────────────────────────────────
 CENTRAL_PAGE = """
 <!DOCTYPE html>
@@ -301,7 +337,7 @@ CENTRAL_PAGE = """
 </style>
 </head>
 <body>
-  <div class="top"><h1>🏥 Sistema de Turnos</h1></div>
+  <div class="top"><h1>🏥 Sistema de Turnos</h1><p style="color:#94a3b8; margin-top:5px;">Usuario: __USER__</p></div>
   <div class="nav-grid">
     <a class="nav-card pub" href="/" target="_blank">
       <div class="icon">🖥️</div>
@@ -327,10 +363,10 @@ CENTRAL_PAGE = """
     <tfoot><tr><th>Total</th><th></th><th id="totalAtt">0</th></tr></tfoot>
   </table>
 
-  <a href="/" class="back">← Pantalla pública</a>
+  <a href="/" class="back">← Pantalla pública</a> | <a href="/logout" class="back">Cerrar sesión</a>
 
 <script>
-  const techNames = ['Mauricio Amaya', 'Julio Castillo', 'Jorge Hernandez', 'Yesica Bonilla', 'Alba Zelaya', 'Manuel Herrera', 'Pendiente 7', 'Pendiente 8'];
+  const techNames = ['Mauricio Amaya', 'Julio Castillo', 'Jorge Hernandez', 'Yesica Bonilla', 'Alba Zelaya', 'Manuel Herrera', 'William Espiñal', 'Rene Quintanilla'];
   function render(data) {
     const grid = document.getElementById('grid'); grid.innerHTML = '';
     for (let i = 0; i < 8; i++) {
@@ -370,9 +406,23 @@ CENTRAL_PAGE = """
 def display():
     return DISPLAY_PAGE
 
-@app.route("/central")
+@app.route("/central", methods=["GET", "POST"])
 def central():
-    return CENTRAL_PAGE
+    if request.method == "POST":
+        user = request.form.get("username", "").strip()
+        if user in admins:
+            session["user"] = user
+            return redirect("/central")
+        else:
+            return render_template_string(LOGIN_PAGE, error="Usuario no autorizado")
+    if "user" not in session:
+        return render_template_string(LOGIN_PAGE, error=None)
+    return CENTRAL_PAGE.replace("__USER__", session["user"])
+
+@app.route("/logout")
+def logout():
+    session.pop("user", None)
+    return redirect("/central")
 
 @app.route("/tecnico")
 def tech_select():
