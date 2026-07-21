@@ -15,8 +15,7 @@ app = Flask(__name__)
 lock = threading.Lock()
 state = {
     "next": 1,
-    "queue": [],
-    "windows": [None] * 8,
+    "pending": [[] for _ in range(8)],
     "active": [True] * 8,
     "attended": [0] * 8,
     "day": str(date.today()),
@@ -30,6 +29,7 @@ def check_day():
     hoy = str(date.today())
     if state["day"] != hoy:
         state["day"] = hoy
+        state["pending"] = [[] for _ in range(8)]
         state["attended"] = [0] * 8
 
 # ─── PANTALLA PUBLICA ───────────────────────────────────────────
@@ -54,12 +54,13 @@ DISPLAY_PAGE = """
   .anuncio.idle .num { color:#475569; font-size:clamp(3em,10vw,7em); }
   .anuncio.idle .msg, .anuncio.idle .sub { color:#64748b; }
   .grid { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; padding:30px; }
-  .win { background:#1e293b; border-radius:20px; padding:25px; text-align:center; border:3px solid #334155; min-height:150px; }
+  .win { background:#1e293b; border-radius:20px; padding:20px; text-align:center; border:3px solid #334155; min-height:170px; display:flex; flex-direction:column; justify-content:center; }
   .win.active { border-color:#22c55e; }
   .win.off { opacity:0.35; }
-  .win .num { font-size:3em; font-weight:bold; color:#fbbf24; }
-  .win .lbl { font-size:1em; color:#94a3b8; margin-top:10px; }
+  .win .num { font-size:2.5em; font-weight:bold; color:#fbbf24; }
+  .win .lbl { font-size:0.9em; color:#94a3b8; margin-top:6px; }
   .win .empty { color:#64748b; font-size:2em; }
+  .win .count { font-size:0.85em; color:#38bdf8; margin-top:4px; }
   .btn-turno { display:block; width:320px; margin:0 auto 20px; padding:18px; background:#38bdf8; color:#0f172a; border:none; border-radius:15px; font-size:1.4em; font-weight:bold; cursor:pointer; }
   .btn-turno:hover { background:#0ea5e9; }
   @media(max-width:900px){ .grid{grid-template-columns:repeat(2,1fr);} }
@@ -89,7 +90,7 @@ DISPLAY_PAGE = """
       if (d.success) {
         document.getElementById('anuncio').className = 'anuncio';
         document.getElementById('anum').textContent = d.num;
-        document.getElementById('asub').textContent = 'Espere a ser llamado';
+        document.getElementById('asub').textContent = techNames[d.ventanilla-1];
         document.querySelector('#anuncio .msg').textContent = 'Su turno es:';
       }
     });
@@ -101,15 +102,23 @@ DISPLAY_PAGE = """
       window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
     }
   }
+  function totalEspera(data) {
+    let total = 0;
+    for (let i = 0; i < 8; i++) total += data.pending[i].length;
+    return total;
+  }
   function render(data) {
-    document.getElementById('waitingCount').textContent = data.queue.length;
+    document.getElementById('waitingCount').textContent = totalEspera(data);
     const grid = document.getElementById('grid'); grid.innerHTML = '';
     for (let i = 0; i < 8; i++) {
-      const t = data.windows[i]; const on = data.active[i];
+      const pend = data.pending[i]; const on = data.active[i];
       const div = document.createElement('div');
       div.className = 'win ' + (on ? 'active' : 'off');
-      if (t) div.innerHTML = '<div class="num">' + t + '</div><div class="lbl">' + techNames[i] + (on ? '' : ' (off)') + '</div>';
-      else div.innerHTML = '<div class="empty">---</div><div class="lbl">' + techNames[i] + (on ? '' : ' (off)') + '</div>';
+      if (pend.length > 0) {
+        div.innerHTML = '<div class="num">' + pend[0] + '</div><div class="lbl">' + techNames[i] + (on ? '' : ' (off)') + '</div><div class="count">Esperando: ' + pend.length + '</div>';
+      } else {
+        div.innerHTML = '<div class="empty">---</div><div class="lbl">' + techNames[i] + (on ? '' : ' (off)') + '</div>';
+      }
       grid.appendChild(div);
     }
   }
@@ -175,26 +184,29 @@ TECH_PAGE = """
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:'Segoe UI',sans-serif; background:#f1f5f9; min-height:100vh; padding:20px; }
-  .card { max-width:500px; margin:30px auto; background:#fff; border-radius:20px; padding:40px; text-align:center; box-shadow:0 5px 20px rgba(0,0,0,.1); }
-  .vnum { color:#64748b; font-size:1.2em; }
-  .current { font-size:6em; font-weight:900; color:#0ea5e9; line-height:1; margin:15px 0; }
-  .current.none { color:#cbd5e1; font-size:4em; }
-  .waiting { background:#e0f2fe; color:#0369a1; padding:12px; border-radius:12px; font-size:1.2em; margin:15px 0; }
+  .card { max-width:500px; margin:30px auto; background:#fff; border-radius:20px; padding:30px; text-align:center; box-shadow:0 5px 20px rgba(0,0,0,.1); }
+  .vnum { color:#64748b; font-size:1.2em; font-weight:bold; }
+  .pend-list { text-align:left; margin:15px 0; max-height:250px; overflow-y:auto; }
+  .pend-item { display:flex; justify-content:space-between; align-items:center; padding:10px 15px; background:#f8fafc; border-radius:10px; margin-bottom:6px; border:1px solid #e2e8f0; }
+  .pend-item .n { font-size:1.5em; font-weight:bold; color:#0ea5e9; }
+  .pend-item .p { color:#64748b; font-size:0.85em; }
+  .empty-pend { color:#94a3b8; text-align:center; padding:20px; font-size:1.1em; }
+  .count { background:#e0f2fe; color:#0369a1; padding:10px; border-radius:12px; font-size:1.1em; margin:10px 0; }
   .btn { width:100%; padding:18px; background:#22c55e; color:#fff; border:none; border-radius:12px; font-size:1.3em; font-weight:bold; cursor:pointer; margin-top:10px; }
   .btn:hover { background:#16a34a; }
   .btn:disabled { background:#cbd5e1; cursor:not-allowed; }
   .btn-off { background:#94a3b8; }
-  .back { display:block; text-align:center; margin-top:20px; color:#0ea5e9; text-decoration:none; }
+  .back { display:block; text-align:center; margin-top:15px; color:#0ea5e9; text-decoration:none; }
   .off-msg { color:#ef4444; font-weight:bold; margin:15px 0; }
 </style>
 </head>
 <body>
   <div class="card" id="card">
     <div class="vnum">__NAME__</div>
-    <div class="current" id="current">---</div>
-    <div class="waiting" id="waiting">En cola: 0 usuarios</div>
+    <div class="count" id="count">Esperando: 0</div>
+    <div class="pend-list" id="pendList"><div class="empty-pend">Sin turnos en espera</div></div>
     <div id="offmsg"></div>
-    <button class="btn" id="btnLlamar" onclick="llamar()">📢 Llamar siguiente</button>
+    <button class="btn" id="btnAtender" onclick="atender()">📢 Atender siguiente</button>
   </div>
   <a href="/tecnico" class="back">← Cambiar ventanilla</a>
   <a href="/" class="back">← Pantalla pública</a>
@@ -202,26 +214,35 @@ TECH_PAGE = """
 <script>
   const v = __V__;
   function render(data) {
-    const t = data.windows[v-1];
-    const on = data.active[v-1];
-    document.getElementById('current').textContent = t ? t : '---';
-    document.getElementById('current').className = 'current' + (t ? '' : ' none');
-    document.getElementById('waiting').textContent = 'En cola: ' + data.queue.length + ' usuarios';
-    const btn = document.getElementById('btnLlamar');
+    const pend = data.pending[v-1]; const on = data.active[v-1];
+    document.getElementById('count').textContent = 'Esperando: ' + pend.length;
+    const list = document.getElementById('pendList');
+    list.innerHTML = '';
+    if (pend.length === 0) {
+      list.innerHTML = '<div class="empty-pend">Sin turnos en espera</div>';
+    } else {
+      pend.forEach((n, idx) => {
+        const item = document.createElement('div');
+        item.className = 'pend-item';
+        item.innerHTML = '<span class="p">#' + (idx+1) + '</span><span class="n">' + n + '</span>';
+        list.appendChild(item);
+      });
+    }
+    const btn = document.getElementById('btnAtender');
     const off = document.getElementById('offmsg');
     if (!on) {
       btn.disabled = true; btn.textContent = '⚪ Inactivo';
       btn.className = 'btn btn-off';
       off.innerHTML = '<div class="off-msg">Técnico inactivo. Pida al administrador que lo active.</div>';
     } else {
-      btn.disabled = (data.queue.length === 0);
-      btn.textContent = '📢 Llamar siguiente';
+      btn.disabled = (pend.length === 0);
+      btn.textContent = '📢 Atender siguiente';
       btn.className = 'btn';
       off.innerHTML = '';
     }
   }
-  function llamar() {
-    fetch('/api/llamar_siguiente/' + v, {method:'POST'}).then(r=>r.json()).then(d=>{
+  function atender() {
+    fetch('/api/atender_siguiente/' + v, {method:'POST'}).then(r=>r.json()).then(d=>{
       if (!d.success && d.error) alert(d.error);
       actualizar();
     });
@@ -252,6 +273,7 @@ ADMIN_PAGE = """
   .card .vnum { font-size:1em; color:#64748b; }
   .card .current { font-size:2.5em; font-weight:bold; color:#0ea5e9; margin:8px 0; }
   .card .current.none { color:#cbd5e1; }
+  .card .pend { color:#f59e0b; font-weight:bold; font-size:0.9em; }
   .card .att { color:#16a34a; font-weight:bold; }
   .btn { width:100%; padding:10px; background:#22c55e; color:#fff; border:none; border-radius:10px; font-size:1em; cursor:pointer; margin-top:6px; }
   .btn-off { background:#94a3b8; }
@@ -293,12 +315,14 @@ ADMIN_PAGE = """
   function render(data) {
     const grid = document.getElementById('grid'); grid.innerHTML = '';
     for (let i = 0; i < 8; i++) {
-      const t = data.windows[i]; const on = data.active[i];
+      const pend = data.pending[i]; const on = data.active[i];
+      const first = pend.length > 0 ? pend[0] : null;
       const div = document.createElement('div');
       div.className = 'card' + (on ? '' : ' off');
       div.innerHTML =
         '<div class="vnum">' + techNames[i] + '</div>' +
-        '<div class="current ' + (t ? '' : 'none') + '">' + (t ? t : '---') + '</div>' +
+        '<div class="current ' + (first ? '' : 'none') + '">' + (first ? first : '---') + '</div>' +
+        '<div class="pend">En espera: ' + pend.length + '</div>' +
         '<div class="att">Atendidos: ' + data.attended[i] + '</div>' +
         '<button class="btn ' + (on ? '' : 'btn-off') + '" onclick="toggle(' + (i+1) + ')">' + (on ? '🟢 Activo' : '⚪ Inactivo') + '</button>';
       grid.appendChild(div);
@@ -309,7 +333,7 @@ ADMIN_PAGE = """
     for (let i = 0; i < 8; i++) {
       total += data.attended[i];
       const tr = document.createElement('tr');
-      tr.innerHTML = '<td>' + techNames[i] + '</td><td>' + (data.active[i] ? '🟢 Activo' : '⚪ Inactivo') + '</td><td>' + data.attended[i] + '</td>';
+      tr.innerHTML = '<td>' + techNames[i] + '</td><td>' + (data.active[i] ? '🟢 Activo' : '⚪ Inactivo') + '</td><td>Espera: ' + data.pending[i].length + ' / Atend: ' + data.attended[i] + '</td>';
       rb.appendChild(tr);
     }
     document.getElementById('totalAtt').textContent = total;
@@ -405,22 +429,25 @@ def tomar_turno():
     with lock:
         num = state["next"]
         state["next"] += 1
-        state["queue"].append(num)
-        broadcast({"type": "nuevo", "num": num, "ventanilla": None, "ts": time.time()})
-    return jsonify({"success": True, "num": num})
+        candidates = [(i, len(state["pending"][i])) for i in range(8) if state["active"][i]]
+        if not candidates:
+            return jsonify({"success": False, "error": "No hay tecnicos activos"})
+        ventanilla = min(candidates, key=lambda x: x[1])[0]
+        state["pending"][ventanilla].append(num)
+        broadcast({"type": "nuevo", "num": num, "ventanilla": ventanilla + 1, "ts": time.time()})
+    return jsonify({"success": True, "num": num, "ventanilla": ventanilla + 1})
 
-@app.route("/api/llamar_siguiente/<int:ventanilla>", methods=["POST"])
-def llamar_siguiente(ventanilla):
+@app.route("/api/atender_siguiente/<int:ventanilla>", methods=["POST"])
+def atender_siguiente(ventanilla):
     if not 1 <= ventanilla <= 8:
         return jsonify({"success": False, "error": "Tecnico invalido"})
     with lock:
         check_day()
         if not state["active"][ventanilla - 1]:
             return jsonify({"success": False, "error": "Tecnico inactivo"})
-        if not state["queue"]:
+        if not state["pending"][ventanilla - 1]:
             return jsonify({"success": False, "error": "No hay turnos en espera"})
-        num = state["queue"].pop(0)
-        state["windows"][ventanilla - 1] = num
+        num = state["pending"][ventanilla - 1].pop(0)
         state["attended"][ventanilla - 1] += 1
         broadcast({"type": "llamada", "num": num, "ventanilla": ventanilla, "ts": time.time()})
     return jsonify({"success": True, "num": num, "ventanilla": ventanilla})
@@ -432,7 +459,7 @@ def toggle_tecnico(ventanilla):
     with lock:
         state["active"][ventanilla - 1] = not state["active"][ventanilla - 1]
         if not state["active"][ventanilla - 1]:
-            state["windows"][ventanilla - 1] = None
+            state["pending"][ventanilla - 1] = []
     return jsonify({"success": True, "active": state["active"][ventanilla - 1]})
 
 @app.route("/api/estado")
@@ -440,8 +467,7 @@ def estado():
     with lock:
         return jsonify({
             "next": state["next"],
-            "queue": list(state["queue"]),
-            "windows": list(state["windows"]),
+            "pending": [list(q) for q in state["pending"]],
             "active": list(state["active"]),
             "attended": list(state["attended"]),
             "last_event": state["last_event"]
@@ -451,8 +477,7 @@ def estado():
 def reset():
     with lock:
         state["next"] = 1
-        state["queue"] = []
-        state["windows"] = [None] * 8
+        state["pending"] = [[] for _ in range(8)]
         state["active"] = [True] * 8
         state["attended"] = [0] * 8
         state["last_event"] = None
