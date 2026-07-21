@@ -23,6 +23,7 @@ state = {
     "attended": [0] * 8,
     "day": str(date.today()),
     "last_event": None,
+    "attendance": {},
 }
 
 def broadcast(event):
@@ -366,6 +367,17 @@ CENTRAL_PAGE = """
   .actions button { padding:10px 20px; margin:0 5px; border:none; border-radius:10px; cursor:pointer; font-weight:bold; }
   .btn-print { background:#0ea5e9; color:#fff; }
   .btn-reset { background:#ef4444; color:#fff; }
+  .btn-report { background:#8b5cf6; color:#fff; }
+  .asistencia-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px; max-width:1100px; margin:0 auto 15px; }
+  .asist-item { display:flex; align-items:center; justify-content:space-between; background:#fff; border-radius:10px; padding:8px 15px; border:1px solid #e2e8f0; }
+  .asist-item .name { font-weight:bold; color:#0f172a; font-size:0.95em; }
+  .asist-item .btns { display:flex; gap:6px; }
+  .asist-item .btns button { padding:5px 14px; border-radius:8px; border:2px solid #e2e8f0; background:#fff; cursor:pointer; font-size:0.85em; font-weight:bold; transition:.2s; }
+  .asist-item .btns button.on { border-color:#22c55e; background:#dcfce7; color:#15803d; }
+  .asist-item .btns button.off { border-color:#f59e0b; background:#fef3c7; color:#b45309; }
+  .asist-btn { margin:0 auto 15px; display:block; padding:10px 25px; background:#6366f1; color:#fff; border:none; border-radius:10px; font-size:1em; font-weight:bold; cursor:pointer; }
+  .asist-btn:hover { background:#4f46e5; }
+  #reporteSemanal { display:none; max-width:900px; margin:15px auto; background:#fff; border-radius:12px; padding:20px; overflow-x:auto; box-shadow:0 2px 10px rgba(0,0,0,.1); }
   table { width:100%; max-width:700px; margin:0 auto 20px; border-collapse:collapse; background:#fff; border-radius:10px; overflow:hidden; }
   th, td { padding:12px; text-align:center; border-bottom:1px solid #eee; }
   th { background:#1e293b; color:#fff; }
@@ -395,7 +407,14 @@ CENTRAL_PAGE = """
   <div class="actions">
     <button class="btn-print" onclick="window.print()">🖨️ Imprimir informe del día</button>
     <button class="btn-reset" onclick="resetSistema()">🗑️ Reiniciar sistema</button>
+    <button class="btn-report" onclick="generarInforme()">📊 Informe semanal</button>
   </div>
+
+  <div class="section-title">Asistencia del Día</div>
+  <div class="asistencia-grid" id="asistGrid"></div>
+  <button class="asist-btn" onclick="guardarAsistencia()">💾 Guardar Asistencia</button>
+
+  <div id="reporteSemanal"></div>
 
   <table id="report">
     <thead><tr><th>Técnico</th><th>Estado</th><th>Espera / Atendidos</th></tr></thead>
@@ -407,6 +426,60 @@ CENTRAL_PAGE = """
 
 <script>
   const techNames = ['Mauricio Amaya', 'Julio Castillo', 'Jorge Hernandez', 'Yesica Bonilla', 'Alba Zelaya', 'Manuel Herrera', 'William Espiñal', 'Rene Quintanilla'];
+  let asistencia = {};
+  function renderAsistencia(data) {
+    const saved = data.attendance_today || {};
+    asistencia = {};
+    const grid = document.getElementById('asistGrid'); grid.innerHTML = '';
+    for (let i = 0; i < 8; i++) {
+      const val = saved[i] || 'sede';
+      asistencia[i] = val;
+      const div = document.createElement('div');
+      div.className = 'asist-item';
+      div.innerHTML =
+        '<span class="name">' + techNames[i] + '</span>' +
+        '<div class="btns">' +
+        '<button class="' + (val === 'sede' ? 'on' : '') + '" onclick="toggleAsist(' + i + ",'sede'" + ')">🏢 Sede</button>' +
+        '<button class="' + (val === 'movil' ? 'on' : '') + '" onclick="toggleAsist(' + i + ",'movil'" + ')">🚐 Móvil</button>' +
+        '</div>';
+      grid.appendChild(div);
+    }
+  }
+  function toggleAsist(i, tipo) {
+    asistencia[i] = tipo;
+    const items = document.getElementById('asistGrid').children;
+    const btns = items[i].querySelectorAll('button');
+    btns[0].className = tipo === 'sede' ? 'on' : '';
+    btns[1].className = tipo === 'movil' ? 'on' : '';
+  }
+  function guardarAsistencia() {
+    fetch('/api/asistencia', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({registro: asistencia})})
+      .then(r=>r.json()).then(d=>{ if(d.success) alert('Asistencia guardada'); });
+  }
+  function generarInforme() {
+    fetch('/api/informe_semanal').then(r=>r.json()).then(data => {
+      const dias = Object.keys(data).sort();
+      let html = '<table style="width:100%;border-collapse:collapse;font-size:0.9em;"><thead><tr><th>Técnico</th>';
+      dias.forEach(d => {
+        const parts = d.split('-');
+        html += '<th>' + parts[2] + '/' + parts[1] + '</th>';
+      });
+      html += '</tr></thead><tbody>';
+      for (let i = 0; i < 8; i++) {
+        html += '<tr><td style="font-weight:bold;padding:8px;border-bottom:1px solid #e2e8f0;">' + techNames[i] + '</td>';
+        dias.forEach(d => {
+          const v = (data[d] || {})[i] || '—';
+          const icono = v === 'movil' ? '🚐' : v === 'sede' ? '🏢' : '—';
+          html += '<td style="padding:8px;text-align:center;border-bottom:1px solid #e2e8f0;">' + icono + '</td>';
+        });
+        html += '</tr>';
+      }
+      html += '</tbody></table>';
+      const el = document.getElementById('reporteSemanal');
+      el.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><h3 style="margin:0;">📊 Informe Semanal</h3><button onclick="this.parentElement.parentElement.style.display=\'none\'" style="background:#ef4444;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;">Cerrar</button></div>' + html;
+      el.style.display = 'block';
+    });
+  }
   function render(data) {
     const grid = document.getElementById('grid'); grid.innerHTML = '';
     for (let i = 0; i < 8; i++) {
@@ -431,6 +504,7 @@ CENTRAL_PAGE = """
       rb.appendChild(tr);
     }
     document.getElementById('totalAtt').textContent = total;
+    renderAsistencia(data);
   }
   function toggle(v) { fetch('/api/toggle_tecnico/' + v, {method:'POST'}).then(()=>actualizar()); }
   function resetSistema() { if (confirm('¿Reiniciar todo el sistema?')) fetch('/api/reset', {method:'POST'}).then(()=>actualizar()); }
@@ -544,8 +618,31 @@ def estado():
             "pending": [list(q) for q in state["pending"]],
             "active": list(state["active"]),
             "attended": list(state["attended"]),
-            "last_event": state["last_event"]
+            "last_event": state["last_event"],
+            "attendance_today": state["attendance"].get(str(date.today()), {})
         })
+
+@app.route("/api/asistencia", methods=["POST"])
+def guardar_asistencia():
+    data = request.get_json()
+    if not data or "registro" not in data:
+        return jsonify({"success": False, "error": "Datos invalidos"})
+    with lock:
+        hoy = str(date.today())
+        state["attendance"][hoy] = data["registro"]
+    return jsonify({"success": True})
+
+@app.route("/api/informe_semanal")
+def informe_semanal():
+    from datetime import timedelta
+    hoy = date.today()
+    lunes = hoy - timedelta(days=hoy.weekday())
+    with lock:
+        report = {}
+        for i in range(7):
+            d = str(lunes + timedelta(days=i))
+            report[d] = state["attendance"].get(d, {})
+    return jsonify(report)
 
 @app.route("/api/reset", methods=["POST"])
 def reset():
@@ -555,6 +652,7 @@ def reset():
         state["active"] = [True] * 8
         state["attended"] = [0] * 8
         state["last_event"] = None
+        state["attendance"] = {}
     return jsonify({"success": True})
 
 if __name__ == "__main__":
