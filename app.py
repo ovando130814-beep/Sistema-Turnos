@@ -8,7 +8,7 @@ Tecnico ve solo su ventanilla. Admin imprime informe diario.
 import threading
 import time
 from datetime import date
-from flask import Flask, render_template_string, request, jsonify
+from flask import Flask, render_template_string, request, jsonify, redirect
 
 app = Flask(__name__)
 
@@ -48,9 +48,9 @@ DISPLAY_PAGE = """
   .waiting { background:#334155; padding:10px 30px; text-align:center; font-size:1.4em; }
   .waiting b { color:#fbbf24; font-size:1.6em; }
   .anuncio { text-align:center; padding:30px 20px; background:linear-gradient(135deg,#022c22,#065f46); min-height:42vh; display:flex; flex-direction:column; justify-content:center; }
-  .anuncio .msg { font-size:clamp(2em,6vw,4.5em); font-weight:bold; color:#fff; line-height:1.1; }
-  .anuncio .num { font-size:clamp(8em,30vw,22em); font-weight:900; color:#fbbf24; line-height:0.9; text-shadow:0 0 40px rgba(251,191,36,.5); }
-  .anuncio .sub { font-size:clamp(1.5em,4vw,3em); color:#a7f3d0; margin-top:10px; }
+  .anuncio .msg { font-size:clamp(2.5em,7vw,5em); font-weight:bold; color:#fff; line-height:1.1; }
+  .anuncio .num { font-size:clamp(10em,35vw,28em); font-weight:900; color:#fbbf24; line-height:0.85; text-shadow:0 0 60px rgba(251,191,36,.6); }
+  .anuncio .sub { font-size:clamp(2em,5vw,4em); color:#a7f3d0; margin-top:15px; }
   .anuncio.idle .num { color:#475569; font-size:clamp(3em,10vw,7em); }
   .anuncio.idle .msg, .anuncio.idle .sub { color:#64748b; }
   .grid { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; padding:30px; }
@@ -82,15 +82,21 @@ DISPLAY_PAGE = """
   <div class="grid" id="grid"></div>
 
 <script>
+  const techNames = ['Mauricio Amaya', 'Julio Castillo', 'Jorge Hernandez', 'Yesica Bonilla', 'Alba Zelaya', 'Manuel Herrera', 'Pendiente 7', 'Pendiente 8'];
   let ultimoTs = null;
   function tomarTurno() {
     fetch('/api/tomar_turno', {method:'POST'}).then(r=>r.json()).then(d=>{
-      if (d.success) alert('Su turno es: ' + d.num + '\\nEspere a ser llamado.');
+      if (d.success) {
+        document.getElementById('anuncio').className = 'anuncio';
+        document.getElementById('anum').textContent = d.num;
+        document.getElementById('asub').textContent = 'Espere a ser llamado';
+        document.querySelector('#anuncio .msg').textContent = 'Su turno es:';
+      }
     });
   }
   function hablar(num, tec) {
     if ('speechSynthesis' in window) {
-      const u = new SpeechSynthesisUtterance('Usted pasara con el tecnico ' + tec + ', con el numero ' + num);
+      const u = new SpeechSynthesisUtterance('Usted pasara con ' + tec + ', con el numero ' + num);
       u.lang = 'es-ES'; u.rate = 0.9;
       window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
     }
@@ -102,8 +108,8 @@ DISPLAY_PAGE = """
       const t = data.windows[i]; const on = data.active[i];
       const div = document.createElement('div');
       div.className = 'win ' + (on ? 'active' : 'off');
-      if (t) div.innerHTML = '<div class="num">' + t + '</div><div class="lbl">Tecnico ' + (i+1) + (on ? '' : ' (off)') + '</div>';
-      else div.innerHTML = '<div class="empty">---</div><div class="lbl">Tecnico ' + (i+1) + (on ? '' : ' (off)') + '</div>';
+      if (t) div.innerHTML = '<div class="num">' + t + '</div><div class="lbl">' + techNames[i] + (on ? '' : ' (off)') + '</div>';
+      else div.innerHTML = '<div class="empty">---</div><div class="lbl">' + techNames[i] + (on ? '' : ' (off)') + '</div>';
       grid.appendChild(div);
     }
   }
@@ -115,7 +121,7 @@ DISPLAY_PAGE = """
         ultimoTs = ev.ts;
         document.getElementById('anuncio').className = 'anuncio';
         document.getElementById('anum').textContent = ev.num;
-        document.getElementById('asub').textContent = 'Usted pasara con el tecnico ' + techNames[ev.ventanilla-1];
+        document.getElementById('asub').textContent = techNames[ev.ventanilla-1];
         document.querySelector('#anuncio .msg').textContent = 'Turno asignado';
         hablar(ev.num, techNames[ev.ventanilla-1]);
       }
@@ -129,6 +135,8 @@ DISPLAY_PAGE = """
 """
 
 # ─── SELECCION DE TECNICO ──────────────────────────────────────
+techNames = ['Mauricio Amaya', 'Julio Castillo', 'Jorge Hernandez', 'Yesica Bonilla', 'Alba Zelaya', 'Manuel Herrera', 'Pendiente 7', 'Pendiente 8']
+
 TECH_SELECT = """
 <!DOCTYPE html>
 <html lang="es">
@@ -149,7 +157,7 @@ TECH_SELECT = """
 <body>
   <h1>🔧 Seleccione su ventanilla</h1>
   <div class="grid">
-    {% for i in range(1,9) %}<button class="btn" onclick="location.href='/tecnico/{{ i }}'">Técnico {{ i }}</button>{% endfor %}
+    {% for i in range(0,8) %}<button class="btn" onclick="location.href='/tecnico/{{ i+1 }}'">{{ names[i] }}</button>{% endfor %}
   </div>
   <a href="/" class="back">← Pantalla pública</a>
 </body>
@@ -163,7 +171,7 @@ TECH_PAGE = """
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tecnico {{ v }}</title>
+<title>__NAME__</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:'Segoe UI',sans-serif; background:#f1f5f9; min-height:100vh; padding:20px; }
@@ -182,7 +190,7 @@ TECH_PAGE = """
 </head>
 <body>
   <div class="card" id="card">
-    <div class="vnum">Ventanilla del Técnico {{ v }}</div>
+    <div class="vnum">__NAME__</div>
     <div class="current" id="current">---</div>
     <div class="waiting" id="waiting">En cola: 0 usuarios</div>
     <div id="offmsg"></div>
@@ -192,7 +200,7 @@ TECH_PAGE = """
   <a href="/" class="back">← Pantalla pública</a>
 
 <script>
-  const v = {{ v }};
+  const v = __V__;
   function render(data) {
     const t = data.windows[v-1];
     const on = data.active[v-1];
@@ -281,6 +289,7 @@ ADMIN_PAGE = """
   <a href="/" class="back">← Pantalla pública</a>
 
 <script>
+  const techNames = ['Mauricio Amaya', 'Julio Castillo', 'Jorge Hernandez', 'Yesica Bonilla', 'Alba Zelaya', 'Manuel Herrera', 'Pendiente 7', 'Pendiente 8'];
   function render(data) {
     const grid = document.getElementById('grid'); grid.innerHTML = '';
     for (let i = 0; i < 8; i++) {
@@ -288,7 +297,7 @@ ADMIN_PAGE = """
       const div = document.createElement('div');
       div.className = 'card' + (on ? '' : ' off');
       div.innerHTML =
-        '<div class="vnum">Técnico ' + (i+1) + '</div>' +
+        '<div class="vnum">' + techNames[i] + '</div>' +
         '<div class="current ' + (t ? '' : 'none') + '">' + (t ? t : '---') + '</div>' +
         '<div class="att">Atendidos: ' + data.attended[i] + '</div>' +
         '<button class="btn ' + (on ? '' : 'btn-off') + '" onclick="toggle(' + (i+1) + ')">' + (on ? '🟢 Activo' : '⚪ Inactivo') + '</button>';
@@ -300,7 +309,7 @@ ADMIN_PAGE = """
     for (let i = 0; i < 8; i++) {
       total += data.attended[i];
       const tr = document.createElement('tr');
-      tr.innerHTML = '<td>Técnico ' + (i+1) + '</td><td>' + (data.active[i] ? '🟢 Activo' : '⚪ Inactivo') + '</td><td>' + data.attended[i] + '</td>';
+      tr.innerHTML = '<td>' + techNames[i] + '</td><td>' + (data.active[i] ? '🟢 Activo' : '⚪ Inactivo') + '</td><td>' + data.attended[i] + '</td>';
       rb.appendChild(tr);
     }
     document.getElementById('totalAtt').textContent = total;
@@ -321,13 +330,14 @@ def display():
 
 @app.route("/tecnico")
 def tech_select():
-    return TECH_SELECT
+    return render_template_string(TECH_SELECT, names=techNames)
 
 @app.route("/tecnico/<int:v>")
 def tech_view(v):
     if not 1 <= v <= 8:
         return redirect("/tecnico")
-    return TECH_PAGE.replace("{{ v }}", str(v))
+    name = techNames[v-1]
+    return TECH_PAGE.replace("__V__", str(v)).replace("__NAME__", name)
 
 @app.route("/admin")
 def admin():
