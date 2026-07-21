@@ -245,8 +245,7 @@ TECH_PAGE = """
     </div>
     <div class="divider"></div>
     <div class="status-bar">
-      <span class="label">TURNOS EN ESPERA</span>
-      <span class="value" id="count">0</span>
+      <span class="label">👤 Tienes <strong id="count">0</strong> usuarios en espera</span>
     </div>
     <div class="pend-list" id="pendList">
       <div class="empty-pend"><span class="led"></span>SIN TURNOS EN ESPERA</div>
@@ -261,7 +260,6 @@ TECH_PAGE = """
   function render(data) {
     const pend = data.pending[v-1]; const on = data.active[v-1];
     document.getElementById('count').textContent = pend.length;
-    document.getElementById('count').className = 'value' + (on ? '' : ' offline');
     const list = document.getElementById('pendList');
     list.innerHTML = '';
     if (pend.length === 0) {
