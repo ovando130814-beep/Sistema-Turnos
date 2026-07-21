@@ -157,27 +157,37 @@ TECH_LOGIN = """
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Acceso Tecnico</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Segoe UI',sans-serif; background:#0f172a; color:#fff; min-height:100vh; display:flex; align-items:center; justify-content:center; }
-  .card { background:#1e293b; border-radius:20px; padding:40px; text-align:center; width:360px; border:2px solid #334155; }
-  .card h1 { color:#38bdf8; margin-bottom:20px; }
-  .card input { width:100%; padding:14px; border-radius:10px; border:2px solid #334155; background:#0f172a; color:#fff; font-size:1.1em; text-align:center; margin-bottom:15px; }
-  .card input:focus { outline:none; border-color:#38bdf8; }
-  .card button { width:100%; padding:14px; background:#38bdf8; color:#0f172a; border:none; border-radius:10px; font-size:1.2em; font-weight:bold; cursor:pointer; }
-  .card button:hover { background:#0ea5e9; }
-  .error { color:#ef4444; margin-top:10px; }
+  body { font-family:'Share Tech Mono','Courier New',monospace; background:radial-gradient(ellipse at center,#0a0f1e 0%,#02040a 100%); color:#fff; min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  body::before { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,170,0.03) 2px,rgba(0,255,170,0.03) 4px); pointer-events:none; }
+  .card { position:relative; background:linear-gradient(135deg,#0f1a2e,#060d1a); border-radius:16px; padding:45px 40px 35px; width:400px; border:1px solid rgba(0,255,170,0.25); box-shadow:0 0 40px rgba(0,255,170,0.08),inset 0 0 60px rgba(0,255,170,0.03); }
+  .card::after { content:''; position:absolute; top:-1px; left:20%; right:20%; height:2px; background:linear-gradient(90deg,transparent,#00ffaa,transparent); }
+  .monitor { font-size:3em; margin-bottom:5px; filter:drop-shadow(0 0 15px rgba(0,255,170,0.4)); }
+  .card h1 { color:#00ffaa; font-size:1.3em; letter-spacing:3px; text-transform:uppercase; text-shadow:0 0 20px rgba(0,255,170,0.3); margin-bottom:5px; }
+  .sub { color:#4a6a7a; font-size:0.8em; letter-spacing:2px; margin-bottom:25px; }
+  .card input { width:100%; padding:14px 18px; border-radius:8px; border:1px solid #1a3340; background:#050d14; color:#00ffaa; font-family:inherit; font-size:1.1em; text-align:center; margin-bottom:15px; letter-spacing:1px; transition:.3s; }
+  .card input:focus { outline:none; border-color:#00ffaa; box-shadow:0 0 20px rgba(0,255,170,0.15); }
+  .card input::placeholder { color:#1a3340; letter-spacing:1px; }
+  .card button { width:100%; padding:14px; background:linear-gradient(135deg,#00cc88,#009966); color:#02040a; border:none; border-radius:8px; font-family:inherit; font-size:1.1em; font-weight:bold; cursor:pointer; letter-spacing:2px; text-transform:uppercase; transition:.3s; box-shadow:0 0 20px rgba(0,255,170,0.15); }
+  .card button:hover { background:linear-gradient(135deg,#00ffaa,#00cc88); box-shadow:0 0 30px rgba(0,255,170,0.3); transform:translateY(-2px); }
+  .error { color:#ff4466; margin-top:12px; font-size:0.9em; text-shadow:0 0 10px rgba(255,68,102,0.3); }
+  .card a { display:block; margin-top:20px; color:#1a3340; text-decoration:none; font-size:0.85em; transition:.3s; }
+  .card a:hover { color:#4a6a7a; }
+  .scanline { position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.15) 3px,rgba(0,0,0,0.15) 4px); pointer-events:none; }
 </style>
 </head>
 <body>
+  <div class="scanline"></div>
   <div class="card">
-    <h1>🔧 Acceso Técnico</h1>
-    <p style="color:#94a3b8; margin-bottom:20px;">Ingrese su nombre</p>
+    <div class="monitor">🖥️</div>
+    <h1>Acceso Técnico</h1>
+    <div class="sub">SISTEMA DE TURNOS v2.0</div>
     <form method="POST" action="/tecnico">
-      <input type="text" name="username" placeholder="Nombre del técnico" required autofocus>
-      <button type="submit">Ingresar</button>
+      <input type="text" name="username" placeholder="INGRESE SU NOMBRE" required autofocus>
+      <button type="submit">INGRESAR</button>
     </form>
-    {% if error %}<div class="error">{{ error }}</div>{% endif %}
-    <a href="/" style="display:block; margin-top:20px; color:#64748b; text-decoration:none;">← Pantalla pública</a>
+    {% if error %}<div class="error">! {{ error }} !</div>{% endif %}
   </div>
 </body>
 </html>
@@ -192,60 +202,87 @@ TECH_PAGE = """
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>__NAME__</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Segoe UI',sans-serif; background:#f1f5f9; min-height:100vh; padding:20px; }
-  .card { max-width:500px; margin:30px auto; background:#fff; border-radius:20px; padding:30px; text-align:center; box-shadow:0 5px 20px rgba(0,0,0,.1); }
-  .vnum { color:#64748b; font-size:1.2em; font-weight:bold; }
-  .pend-list { text-align:left; margin:15px 0; max-height:250px; overflow-y:auto; }
-  .pend-item { display:flex; justify-content:space-between; align-items:center; padding:10px 15px; background:#f8fafc; border-radius:10px; margin-bottom:6px; border:1px solid #e2e8f0; }
-  .pend-item .n { font-size:1.5em; font-weight:bold; color:#0ea5e9; }
-  .pend-item .p { color:#64748b; font-size:0.85em; }
-  .empty-pend { color:#94a3b8; text-align:center; padding:20px; font-size:1.1em; }
-  .count { background:#e0f2fe; color:#0369a1; padding:10px; border-radius:12px; font-size:1.1em; margin:10px 0; }
-  .btn { width:100%; padding:18px; background:#22c55e; color:#fff; border:none; border-radius:12px; font-size:1.3em; font-weight:bold; cursor:pointer; margin-top:10px; }
-  .btn:hover { background:#16a34a; }
-  .btn:disabled { background:#cbd5e1; cursor:not-allowed; }
-  .btn-off { background:#94a3b8; }
-  .back { display:block; text-align:center; margin-top:15px; color:#0ea5e9; text-decoration:none; }
-  .off-msg { color:#ef4444; font-weight:bold; margin:15px 0; }
+  body { font-family:'Share Tech Mono','Courier New',monospace; background:radial-gradient(ellipse at center,#0a0f1e 0%,#02040a 100%); min-height:100vh; padding:20px; overflow-x:hidden; }
+  body::before { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,170,0.03) 2px,rgba(0,255,170,0.03) 4px); pointer-events:none; }
+  .scanline { position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.15) 3px,rgba(0,0,0,0.15) 4px); pointer-events:none; }
+  .card { max-width:520px; margin:20px auto; background:linear-gradient(135deg,#0f1a2e,#060d1a); border-radius:16px; padding:30px; text-align:center; border:1px solid rgba(0,255,170,0.2); box-shadow:0 0 40px rgba(0,255,170,0.06),inset 0 0 60px rgba(0,255,170,0.02); position:relative; }
+  .card::after { content:''; position:absolute; top:-1px; left:20%; right:20%; height:2px; background:linear-gradient(90deg,transparent,#00ffaa,transparent); }
+  .header { display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:5px; }
+  .header .icon { font-size:2em; filter:drop-shadow(0 0 10px rgba(0,255,170,0.3)); }
+  .header .name { color:#00ffaa; font-size:1.2em; letter-spacing:2px; text-shadow:0 0 15px rgba(0,255,170,0.2); }
+  .status-bar { display:flex; justify-content:space-between; align-items:center; background:rgba(0,255,170,0.05); border:1px solid rgba(0,255,170,0.1); border-radius:8px; padding:10px 15px; margin:15px 0; }
+  .status-bar .label { color:#4a6a7a; font-size:0.8em; letter-spacing:1px; }
+  .status-bar .value { color:#00ffaa; font-size:1.1em; }
+  .status-bar .value.offline { color:#ff4466; }
+  .pend-list { text-align:left; margin:10px 0; max-height:260px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:#00ffaa transparent; }
+  .pend-list::-webkit-scrollbar { width:4px; }
+  .pend-list::-webkit-scrollbar-thumb { background:#00ffaa; border-radius:2px; }
+  .pend-item { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:rgba(0,255,170,0.03); border-radius:8px; margin-bottom:6px; border:1px solid rgba(0,255,170,0.08); transition:.3s; }
+  .pend-item:hover { border-color:rgba(0,255,170,0.2); background:rgba(0,255,170,0.06); }
+  .pend-item .pos { color:#4a6a7a; font-size:0.85em; }
+  .pend-item .num { font-size:1.6em; font-weight:bold; color:#00cc88; text-shadow:0 0 10px rgba(0,255,170,0.15); }
+  .empty-pend { color:#1a3340; text-align:center; padding:25px; font-size:1em; letter-spacing:1px; }
+  .empty-pend .led { display:inline-block; width:8px; height:8px; background:#1a3340; border-radius:50%; margin-right:8px; vertical-align:middle; animation:blink 2s infinite; }
+  @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+  .btn { width:100%; padding:16px; background:linear-gradient(135deg,#00cc88,#009966); color:#02040a; border:none; border-radius:8px; font-family:inherit; font-size:1.2em; font-weight:bold; cursor:pointer; letter-spacing:2px; text-transform:uppercase; transition:.3s; box-shadow:0 0 20px rgba(0,255,170,0.12); margin-top:12px; }
+  .btn:hover:not(:disabled) { background:linear-gradient(135deg,#00ffaa,#00cc88); box-shadow:0 0 30px rgba(0,255,170,0.25); transform:translateY(-2px); }
+  .btn:disabled { background:#0a1520; color:#1a3340; cursor:not-allowed; box-shadow:none; border:1px solid #1a3340; }
+  .btn-off { background:#0a1520; color:#1a3340; cursor:not-allowed; box-shadow:none; border:1px solid #1a3340; }
+  .off-msg { color:#ff4466; font-size:0.9em; margin:12px 0; text-shadow:0 0 10px rgba(255,68,102,0.2); }
+  .back { display:block; text-align:center; margin-top:18px; color:#1a3340; text-decoration:none; font-size:0.85em; letter-spacing:1px; transition:.3s; }
+  .back:hover { color:#4a6a7a; }
+  .divider { height:1px; background:linear-gradient(90deg,transparent,rgba(0,255,170,0.15),transparent); margin:10px 0; }
 </style>
 </head>
 <body>
+  <div class="scanline"></div>
   <div class="card" id="card">
-    <div class="vnum">__NAME__</div>
-    <div class="count" id="count">Esperando: 0</div>
-    <div class="pend-list" id="pendList"><div class="empty-pend">Sin turnos en espera</div></div>
+    <div class="header">
+      <span class="icon">🖥️</span>
+      <span class="name">__NAME__</span>
+    </div>
+    <div class="divider"></div>
+    <div class="status-bar">
+      <span class="label">TURNOS EN ESPERA</span>
+      <span class="value" id="count">0</span>
+    </div>
+    <div class="pend-list" id="pendList">
+      <div class="empty-pend"><span class="led"></span>SIN TURNOS EN ESPERA</div>
+    </div>
     <div id="offmsg"></div>
-    <button class="btn" id="btnAtender" onclick="atender()">📢 Atender siguiente</button>
+    <button class="btn" id="btnAtender" onclick="atender()">▶ ATENDER SIGUIENTE</button>
   </div>
-  <a href="/logout-tecnico" class="back">← Cambiar técnico</a>
+  <a href="/logout-tecnico" class="back">[ ← CAMBIAR TÉCNICO ]</a>
 
 <script>
   const v = __V__;
   function render(data) {
     const pend = data.pending[v-1]; const on = data.active[v-1];
-    document.getElementById('count').textContent = 'Esperando: ' + pend.length;
+    document.getElementById('count').textContent = pend.length;
+    document.getElementById('count').className = 'value' + (on ? '' : ' offline');
     const list = document.getElementById('pendList');
     list.innerHTML = '';
     if (pend.length === 0) {
-      list.innerHTML = '<div class="empty-pend">Sin turnos en espera</div>';
+      list.innerHTML = '<div class="empty-pend"><span class="led"></span>SIN TURNOS EN ESPERA</div>';
     } else {
       pend.forEach((n, idx) => {
         const item = document.createElement('div');
         item.className = 'pend-item';
-        item.innerHTML = '<span class="p">#' + (idx+1) + '</span><span class="n">' + n + '</span>';
+        item.innerHTML = '<span class="pos">#' + (idx+1) + '</span><span class="num">' + n + '</span>';
         list.appendChild(item);
       });
     }
     const btn = document.getElementById('btnAtender');
     const off = document.getElementById('offmsg');
     if (!on) {
-      btn.disabled = true; btn.textContent = '⚪ Inactivo';
-      btn.className = 'btn btn-off';
-      off.innerHTML = '<div class="off-msg">Técnico inactivo. Pida al administrador que lo active.</div>';
+      btn.disabled = true; btn.textContent = '⚙ INACTIVO';
+      btn.className = 'btn-off';
+      off.innerHTML = '<div class="off-msg">! SISTEMA INACTIVO - Contacte al administrador !</div>';
     } else {
       btn.disabled = (pend.length === 0);
-      btn.textContent = '📢 Atender siguiente';
+      btn.textContent = pend.length > 0 ? '▶ ATENDER SIGUIENTE' : '⏻ ESPERANDO TURNOS';
       btn.className = 'btn';
       off.innerHTML = '';
     }
