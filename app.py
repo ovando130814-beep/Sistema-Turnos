@@ -146,32 +146,39 @@ DISPLAY_PAGE = """
 </html>
 """
 
-# ─── SELECCION DE TECNICO ──────────────────────────────────────
+# ─── TECNICOS ─────────────────────────────────────────────────
 techNames = ['Mauricio Amaya', 'Julio Castillo', 'Jorge Hernandez', 'Yesica Bonilla', 'Alba Zelaya', 'Manuel Herrera', 'William Espiñal', 'Rene Quintanilla']
 
-TECH_SELECT = """
+TECH_LOGIN = """
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Panel Tecnico</title>
+<title>Acceso Tecnico</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Segoe UI',sans-serif; background:#0f172a; color:#fff; min-height:100vh; padding:30px; }
-  h1 { text-align:center; color:#38bdf8; margin-bottom:30px; }
-  .grid { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; max-width:900px; margin:0 auto; }
-  .btn { padding:40px; background:#1e293b; color:#fff; border:3px solid #334155; border-radius:20px; font-size:1.5em; font-weight:bold; cursor:pointer; transition:.3s; }
-  .btn:hover { border-color:#22c55e; background:#065f46; transform:scale(1.05); }
-  .back { display:block; text-align:center; margin-top:30px; color:#64748b; text-decoration:none; }
+  body { font-family:'Segoe UI',sans-serif; background:#0f172a; color:#fff; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+  .card { background:#1e293b; border-radius:20px; padding:40px; text-align:center; width:360px; border:2px solid #334155; }
+  .card h1 { color:#38bdf8; margin-bottom:20px; }
+  .card input { width:100%; padding:14px; border-radius:10px; border:2px solid #334155; background:#0f172a; color:#fff; font-size:1.1em; text-align:center; margin-bottom:15px; }
+  .card input:focus { outline:none; border-color:#38bdf8; }
+  .card button { width:100%; padding:14px; background:#38bdf8; color:#0f172a; border:none; border-radius:10px; font-size:1.2em; font-weight:bold; cursor:pointer; }
+  .card button:hover { background:#0ea5e9; }
+  .error { color:#ef4444; margin-top:10px; }
 </style>
 </head>
 <body>
-  <h1>🔧 Seleccione su ventanilla</h1>
-  <div class="grid">
-    {% for i in range(0,8) %}<button class="btn" onclick="location.href='/tecnico/{{ i+1 }}'">{{ names[i] }}</button>{% endfor %}
+  <div class="card">
+    <h1>🔧 Acceso Técnico</h1>
+    <p style="color:#94a3b8; margin-bottom:20px;">Ingrese su nombre</p>
+    <form method="POST" action="/tecnico">
+      <input type="text" name="username" placeholder="Nombre del técnico" required autofocus>
+      <button type="submit">Ingresar</button>
+    </form>
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+    <a href="/" style="display:block; margin-top:20px; color:#64748b; text-decoration:none;">← Pantalla pública</a>
   </div>
-  <a href="/" class="back">← Pantalla pública</a>
 </body>
 </html>
 """
@@ -211,7 +218,7 @@ TECH_PAGE = """
     <div id="offmsg"></div>
     <button class="btn" id="btnAtender" onclick="atender()">📢 Atender siguiente</button>
   </div>
-  <a href="/tecnico" class="back">← Cambiar ventanilla</a>
+  <a href="/logout-tecnico" class="back">← Cambiar técnico</a>
   <a href="/" class="back">← Pantalla pública</a>
 
 <script>
@@ -424,12 +431,35 @@ def logout():
     session.pop("user", None)
     return redirect("/central")
 
-@app.route("/tecnico")
-def tech_select():
-    return render_template_string(TECH_SELECT, names=techNames)
+@app.route("/logout-tecnico")
+def logout_tecnico():
+    session.pop("tecnico", None)
+    return redirect("/tecnico")
+
+@app.route("/tecnico", methods=["GET", "POST"])
+def tech_login():
+    if request.method == "POST":
+        user = request.form.get("username", "").strip().lower()
+        matched = None
+        for i, name in enumerate(techNames):
+            if name.lower() == user:
+                matched = i + 1
+                break
+        if matched:
+            session["tecnico"] = matched
+            return redirect("/tecnico/" + str(matched))
+        else:
+            return render_template_string(TECH_LOGIN, error="Nombre no encontrado")
+    if "tecnico" in session:
+        return redirect("/tecnico/" + str(session["tecnico"]))
+    return render_template_string(TECH_LOGIN, error=None)
 
 @app.route("/tecnico/<int:v>")
 def tech_view(v):
+    if "tecnico" not in session:
+        return redirect("/tecnico")
+    if session["tecnico"] != v:
+        return redirect("/tecnico/" + str(session["tecnico"]))
     if not 1 <= v <= 8:
         return redirect("/tecnico")
     name = techNames[v-1]
