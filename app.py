@@ -311,10 +311,6 @@ CENTRAL_PAGE = """
       <div class="icon">🔧</div>
       <div class="tit">Panel Técnicos</div>
     </a>
-    <a class="nav-card adm">
-      <div class="icon">👑</div>
-      <div class="tit">Administración</div>
-    </a>
   </div>
 
   <div class="section-title">Control de Técnicos</div>
