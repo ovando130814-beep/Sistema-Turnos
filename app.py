@@ -115,9 +115,9 @@ DISPLAY_PAGE = """
         ultimoTs = ev.ts;
         document.getElementById('anuncio').className = 'anuncio';
         document.getElementById('anum').textContent = ev.num;
-        document.getElementById('asub').textContent = 'Usted pasara con el tecnico ' + ev.ventanilla;
+        document.getElementById('asub').textContent = 'Usted pasara con el tecnico ' + techNames[ev.ventanilla-1];
         document.querySelector('#anuncio .msg').textContent = 'Turno asignado';
-        hablar(ev.num, ev.ventanilla);
+        hablar(ev.num, techNames[ev.ventanilla-1]);
       }
     });
   }
