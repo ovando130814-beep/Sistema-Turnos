@@ -427,13 +427,19 @@ CENTRAL_PAGE = """
 <script>
   const techNames = ['Mauricio Amaya', 'Julio Castillo', 'Jorge Hernandez', 'Yesica Bonilla', 'Alba Zelaya', 'Manuel Herrera', 'William Espiñal', 'Rene Quintanilla'];
   let asistencia = {};
-  function renderAsistencia(data) {
-    const saved = data.attendance_today || {};
-    asistencia = {};
-    const grid = document.getElementById('asistGrid'); grid.innerHTML = '';
+  function initAsistencia() {
+    fetch('/api/estado').then(r=>r.json()).then(data => {
+      const saved = data.attendance_today || {};
+      asistencia = {};
+      for (let i = 0; i < 8; i++) asistencia[i] = saved[i] || 'sede';
+      renderAsistencia();
+    });
+  }
+  function renderAsistencia() {
+    const grid = document.getElementById('asistGrid'); if (!grid) return;
+    grid.innerHTML = '';
     for (let i = 0; i < 8; i++) {
-      const val = saved[i] || 'sede';
-      asistencia[i] = val;
+      const val = asistencia[i] || 'sede';
       const div = document.createElement('div');
       div.className = 'asist-item';
       div.innerHTML =
@@ -448,13 +454,19 @@ CENTRAL_PAGE = """
   function toggleAsist(i, tipo) {
     asistencia[i] = tipo;
     const items = document.getElementById('asistGrid').children;
+    if (!items[i]) return;
     const btns = items[i].querySelectorAll('button');
-    btns[0].className = tipo === 'sede' ? 'on' : '';
-    btns[1].className = tipo === 'movil' ? 'on' : '';
+    if (btns.length >= 2) {
+      btns[0].className = tipo === 'sede' ? 'on' : '';
+      btns[1].className = tipo === 'movil' ? 'on' : '';
+    }
   }
   function guardarAsistencia() {
     fetch('/api/asistencia', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({registro: asistencia})})
-      .then(r=>r.json()).then(d=>{ if(d.success) alert('Asistencia guardada'); });
+      .then(r=>r.json()).then(d=>{
+        if(d.success) alert('Asistencia guardada correctamente');
+        else alert('Error: ' + (d.error || 'desconocido'));
+      }).catch(e => alert('Error de red: ' + e.message));
   }
   function generarInforme() {
     fetch('/api/informe_semanal').then(r=>r.json()).then(data => {
@@ -504,11 +516,11 @@ CENTRAL_PAGE = """
       rb.appendChild(tr);
     }
     document.getElementById('totalAtt').textContent = total;
-    renderAsistencia(data);
   }
   function toggle(v) { fetch('/api/toggle_tecnico/' + v, {method:'POST'}).then(()=>actualizar()); }
   function resetSistema() { if (confirm('¿Reiniciar todo el sistema?')) fetch('/api/reset', {method:'POST'}).then(()=>actualizar()); }
   function actualizar() { fetch('/api/estado').then(r=>r.json()).then(render); }
+  initAsistencia();
   actualizar(); setInterval(actualizar, 1500);
 </script>
 </body>
