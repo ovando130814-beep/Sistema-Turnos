@@ -219,7 +219,6 @@ TECH_PAGE = """
     <button class="btn" id="btnAtender" onclick="atender()">📢 Atender siguiente</button>
   </div>
   <a href="/logout-tecnico" class="back">← Cambiar técnico</a>
-  <a href="/" class="back">← Pantalla pública</a>
 
 <script>
   const v = __V__;
