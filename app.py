@@ -389,10 +389,6 @@ def tech_view(v):
     name = techNames[v-1]
     return TECH_PAGE.replace("__V__", str(v)).replace("__NAME__", name)
 
-@app.route("/admin")
-def admin():
-    return redirect("/central")
-
 @app.route("/api/tomar_turno", methods=["POST"])
 def tomar_turno():
     with lock:
