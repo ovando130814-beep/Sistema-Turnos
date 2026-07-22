@@ -46,32 +46,33 @@ DISPLAY_PAGE = """
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
 <title>Turnos en Espera</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Segoe UI',sans-serif; background:#0a0a0a; color:#fff; min-height:100vh; }
-  .top { background:#0d0d2b; padding:12px 30px; display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #1a3a8a; }
-  .top .logo { height:40px; vertical-align:middle; }
-  .waiting { background:#0d0d2b; padding:10px 30px; text-align:center; font-size:1.4em; border-bottom:1px solid #1a3a8a; }
-  .waiting b { color:#3b82f6; font-size:1.6em; }
-  .anuncio { text-align:center; padding:30px 20px; background:linear-gradient(135deg,#060620,#0d0d2b); min-height:42vh; display:flex; flex-direction:column; justify-content:center; }
-  .anuncio .msg { font-size:clamp(2.5em,7vw,5em); font-weight:bold; color:#fff; line-height:1.1; }
-  .anuncio .num { font-size:clamp(10em,35vw,28em); font-weight:900; color:#3b82f6; line-height:0.85; text-shadow:0 0 60px rgba(59,130,246,.5); }
-  .anuncio .sub { font-size:clamp(2em,5vw,4em); color:#60a5fa; margin-top:15px; }
-  .anuncio.idle .num { color:#1e3a5f; font-size:clamp(3em,10vw,7em); }
+  body { font-family:'Segoe UI',sans-serif; background:#0a0a0a; color:#fff; min-height:100vh; min-height:100dvh; }
+  .top { background:#0d0d2b; padding:clamp(8px,2vw,16px) clamp(12px,4vw,30px); display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #1a3a8a; }
+  .top .logo { height:clamp(28px,5vw,45px); vertical-align:middle; }
+  .top #clock { font-size:clamp(1em,3vw,1.5em); color:#60a5fa; font-weight:bold; }
+  .waiting { background:#0d0d2b; padding:clamp(6px,1.5vw,12px) 15px; text-align:center; font-size:clamp(1.1em,3vw,1.6em); border-bottom:1px solid #1a3a8a; }
+  .waiting b { color:#3b82f6; font-size:1.3em; }
+  .anuncio { text-align:center; padding:clamp(15px,3vw,35px) 10px; background:linear-gradient(135deg,#060620,#0d0d2b); min-height:35vh; min-height:35dvh; display:flex; flex-direction:column; justify-content:center; }
+  .anuncio .msg { font-size:clamp(1.8em,5vw,4em); font-weight:bold; color:#fff; line-height:1.1; margin-bottom:5px; }
+  .anuncio .num { font-size:clamp(6em,30vw,26em); font-weight:900; color:#fbbf24; line-height:0.85; text-shadow:0 0 40px rgba(251,191,36,.5); }
+  .anuncio .sub { font-size:clamp(1.5em,4vw,3.5em); color:#60a5fa; margin-top:clamp(5px,1.5vw,15px); font-weight:bold; }
+  .anuncio.idle .num { color:#1e3a5f; font-size:clamp(3em,10vw,7em); text-shadow:none; }
   .anuncio.idle .msg, .anuncio.idle .sub { color:#4a6a8a; }
-  .grid { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; padding:30px; }
-  .win { background:#0d0d2b; border-radius:20px; padding:20px; text-align:center; border:3px solid #1a3a8a; min-height:170px; display:flex; flex-direction:column; justify-content:center; }
+  .btn-turno { display:block; width:min(320px,90%); margin:clamp(8px,1.5vw,20px) auto; padding:clamp(12px,2vw,20px); background:#3b82f6; color:#fff; border:none; border-radius:clamp(10px,2vw,15px); font-size:clamp(1.2em,3vw,1.6em); font-weight:bold; cursor:pointer; }
+  .btn-turno:hover { background:#2563eb; }
+  .btn-turno:active { transform:scale(0.97); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:clamp(8px,1.5vw,20px); padding:clamp(10px,2vw,30px); }
+  .win { background:#0d0d2b; border-radius:clamp(12px,2vw,20px); padding:clamp(12px,2vw,20px); text-align:center; border:3px solid #1a3a8a; min-height:120px; display:flex; flex-direction:column; justify-content:center; }
   .win.active { border-color:#3b82f6; }
   .win.off { opacity:0.35; }
-  .win .num { font-size:2.5em; font-weight:bold; color:#3b82f6; }
-  .win .lbl { font-size:0.9em; color:#94a3b8; margin-top:6px; }
-  .win .empty { color:#4a6a8a; font-size:2em; }
-  .win .count { font-size:0.85em; color:#60a5fa; margin-top:4px; }
-  .btn-turno { display:block; width:320px; margin:0 auto 20px; padding:18px; background:#3b82f6; color:#fff; border:none; border-radius:15px; font-size:1.4em; font-weight:bold; cursor:pointer; }
-  .btn-turno:hover { background:#2563eb; }
-  @media(max-width:900px){ .grid{grid-template-columns:repeat(2,1fr);} }
+  .win .num { font-size:clamp(1.8em,4vw,2.8em); font-weight:bold; color:#fbbf24; }
+  .win .lbl { font-size:clamp(0.75em,1.8vw,1em); color:#94a3b8; margin-top:6px; }
+  .win .empty { color:#4a6a8a; font-size:clamp(1.5em,3vw,2.2em); }
+  .win .count { font-size:clamp(0.7em,1.5vw,0.9em); color:#60a5fa; margin-top:4px; }
 </style>
 </head>
 <body>
@@ -100,13 +101,14 @@ DISPLAY_PAGE = """
         document.getElementById('anum').textContent = d.num;
         document.getElementById('asub').textContent = techNames[d.ventanilla-1];
         document.querySelector('#anuncio .msg').textContent = 'Su turno es:';
+        hablar(d.num, techNames[d.ventanilla-1]);
       }
     });
   }
   function hablar(num, tec) {
     if ('speechSynthesis' in window) {
-      const u = new SpeechSynthesisUtterance('Usted pasara con ' + tec + ', con el numero ' + num);
-      u.lang = 'es-ES'; u.rate = 0.9;
+      const u = new SpeechSynthesisUtterance('Usuario ' + num + ', el tecnico ' + tec + ' le atendera');
+      u.lang = 'es-ES'; u.rate = 0.85;
       window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
     }
   }
@@ -138,8 +140,8 @@ DISPLAY_PAGE = """
         ultimoTs = ev.ts;
         document.getElementById('anuncio').className = 'anuncio';
         document.getElementById('anum').textContent = ev.num;
-        document.getElementById('asub').textContent = techNames[ev.ventanilla-1];
-        document.querySelector('#anuncio .msg').textContent = 'Turno asignado';
+        document.getElementById('asub').textContent = 'Tecnico ' + techNames[ev.ventanilla-1];
+        document.querySelector('#anuncio .msg').textContent = 'Usuario ' + ev.num + ', el tecnico ' + techNames[ev.ventanilla-1] + ' le atendera';
         hablar(ev.num, techNames[ev.ventanilla-1]);
       }
     });
