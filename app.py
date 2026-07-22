@@ -537,7 +537,7 @@ CENTRAL_PAGE = """
       }
       html += '</tbody></table>';
       const el = document.getElementById('reporteSemanal');
-      el.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><h3 style="margin:0;">📊 Informe Semanal</h3><button onclick="this.parentElement.parentElement.style.display=\'none\'" style="background:#ef4444;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;">Cerrar</button></div>' + html;
+      el.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><h3 style="margin:0;">📊 Informe Semanal</h3><button onclick="this.parentElement.parentElement.style.display=\\'none\\'" style="background:#ef4444;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;">Cerrar</button></div>' + html;
       el.style.display = 'block';
     });
   }
