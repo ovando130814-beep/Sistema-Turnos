@@ -574,7 +574,7 @@ CENTRAL_PAGE = """
   function generarInforme() {
     fetch('/api/informe_semanal').then(r=>r.json()).then(data => {
       const dias = Object.keys(data).sort();
-      const opts = {sede:'🏢', movil:'🚐', mision:'🏛️', ausente:'❌', incapacidad:'🏥', consulta:'📋'};
+      const opts = {sede:'🏢 Sede', movil:'🚐 Móvil', mision:'🏛️ M.Oficial', ausente:'❌ Ausente', incapacidad:'🏥 Incapacidad', consulta:'📋 Consulta'};
       let html = '<table style="width:100%;border-collapse:collapse;font-size:0.85em;"><thead><tr><th>Técnico</th>';
       dias.forEach(d => {
         const parts = d.split('-');
@@ -616,9 +616,9 @@ CENTRAL_PAGE = """
     for (let i = 0; i < 8; i++) {
       total += (data.attended[i] || []).length;
       const tr = document.createElement('tr');
-      const asIcons = {sede:'🏢', movil:'🚐', mision:'🏛️', ausente:'❌', incapacidad:'🏥', consulta:'📋'};
+      const asLabels = {sede:'🏢 Sede', movil:'🚐 Móvil', mision:'🏛️ Misión Oficial', ausente:'❌ Ausente', incapacidad:'🏥 Incapacidad', consulta:'📋 Consulta'};
       const asVal = (data.attendance_today || {})[i] || '—';
-      const asIcon = asIcons[asVal] || asVal;
+      const asIcon = asLabels[asVal] || '—';
       tr.innerHTML = '<td>' + techNames[i] + '</td><td>' + (data.active[i] ? '🟢 Activo' : '⚪ Inactivo') + '</td><td>' + asIcon + '</td><td>Espera: ' + data.pending[i].length + ' / Atend: ' + (data.attended[i] || []).length + '</td>';
       rb.appendChild(tr);
     }
