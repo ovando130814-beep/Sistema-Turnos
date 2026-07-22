@@ -15,6 +15,10 @@ app.secret_key = 'turnos-secret-key-cambiar'
 
 admins = ['Carmen Cruz', 'Edwin Ovando']
 
+with open('static/1.jpg', 'rb') as f: LOGO1_B64 = __import__('base64').b64encode(f.read()).decode()
+with open('static/2.png', 'rb') as f: LOGO2_B64 = __import__('base64').b64encode(f.read()).decode()
+with open('static/3.webp', 'rb') as f: LOGO3_B64 = __import__('base64').b64encode(f.read()).decode()
+
 lock = threading.Lock()
 state = {
     "next": 1,
@@ -46,33 +50,33 @@ DISPLAY_PAGE = """
 <title>Turnos en Espera</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Segoe UI',sans-serif; background:#0f172a; color:#fff; min-height:100vh; }
-  .top { background:#1e293b; padding:15px 30px; display:flex; justify-content:space-between; align-items:center; }
-  .top h1 { font-size:1.4em; color:#38bdf8; }
-  .waiting { background:#334155; padding:10px 30px; text-align:center; font-size:1.4em; }
-  .waiting b { color:#fbbf24; font-size:1.6em; }
-  .anuncio { text-align:center; padding:30px 20px; background:linear-gradient(135deg,#022c22,#065f46); min-height:42vh; display:flex; flex-direction:column; justify-content:center; }
+  body { font-family:'Segoe UI',sans-serif; background:#0a0a0a; color:#fff; min-height:100vh; }
+  .top { background:#0d0d2b; padding:12px 30px; display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #1a3a8a; }
+  .top .logo { height:40px; vertical-align:middle; }
+  .waiting { background:#0d0d2b; padding:10px 30px; text-align:center; font-size:1.4em; border-bottom:1px solid #1a3a8a; }
+  .waiting b { color:#3b82f6; font-size:1.6em; }
+  .anuncio { text-align:center; padding:30px 20px; background:linear-gradient(135deg,#060620,#0d0d2b); min-height:42vh; display:flex; flex-direction:column; justify-content:center; }
   .anuncio .msg { font-size:clamp(2.5em,7vw,5em); font-weight:bold; color:#fff; line-height:1.1; }
-  .anuncio .num { font-size:clamp(10em,35vw,28em); font-weight:900; color:#fbbf24; line-height:0.85; text-shadow:0 0 60px rgba(251,191,36,.6); }
-  .anuncio .sub { font-size:clamp(2em,5vw,4em); color:#a7f3d0; margin-top:15px; }
-  .anuncio.idle .num { color:#475569; font-size:clamp(3em,10vw,7em); }
-  .anuncio.idle .msg, .anuncio.idle .sub { color:#64748b; }
+  .anuncio .num { font-size:clamp(10em,35vw,28em); font-weight:900; color:#3b82f6; line-height:0.85; text-shadow:0 0 60px rgba(59,130,246,.5); }
+  .anuncio .sub { font-size:clamp(2em,5vw,4em); color:#60a5fa; margin-top:15px; }
+  .anuncio.idle .num { color:#1e3a5f; font-size:clamp(3em,10vw,7em); }
+  .anuncio.idle .msg, .anuncio.idle .sub { color:#4a6a8a; }
   .grid { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; padding:30px; }
-  .win { background:#1e293b; border-radius:20px; padding:20px; text-align:center; border:3px solid #334155; min-height:170px; display:flex; flex-direction:column; justify-content:center; }
-  .win.active { border-color:#22c55e; }
+  .win { background:#0d0d2b; border-radius:20px; padding:20px; text-align:center; border:3px solid #1a3a8a; min-height:170px; display:flex; flex-direction:column; justify-content:center; }
+  .win.active { border-color:#3b82f6; }
   .win.off { opacity:0.35; }
-  .win .num { font-size:2.5em; font-weight:bold; color:#fbbf24; }
+  .win .num { font-size:2.5em; font-weight:bold; color:#3b82f6; }
   .win .lbl { font-size:0.9em; color:#94a3b8; margin-top:6px; }
-  .win .empty { color:#64748b; font-size:2em; }
-  .win .count { font-size:0.85em; color:#38bdf8; margin-top:4px; }
-  .btn-turno { display:block; width:320px; margin:0 auto 20px; padding:18px; background:#38bdf8; color:#0f172a; border:none; border-radius:15px; font-size:1.4em; font-weight:bold; cursor:pointer; }
-  .btn-turno:hover { background:#0ea5e9; }
+  .win .empty { color:#4a6a8a; font-size:2em; }
+  .win .count { font-size:0.85em; color:#60a5fa; margin-top:4px; }
+  .btn-turno { display:block; width:320px; margin:0 auto 20px; padding:18px; background:#3b82f6; color:#fff; border:none; border-radius:15px; font-size:1.4em; font-weight:bold; cursor:pointer; }
+  .btn-turno:hover { background:#2563eb; }
   @media(max-width:900px){ .grid{grid-template-columns:repeat(2,1fr);} }
 </style>
 </head>
 <body>
   <div class="top">
-    <h1>🏥 Sistema de Turnos</h1>
+    <img class="logo" src="data:image/jpeg;base64,__LOGO1__" alt="Logo">
     <div id="clock"></div>
   </div>
   <div class="waiting">En espera: <b id="waitingCount">0</b> personas</div>
@@ -160,28 +164,28 @@ TECH_LOGIN = """
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Share Tech Mono','Courier New',monospace; background:radial-gradient(ellipse at center,#0a0f1e 0%,#02040a 100%); color:#fff; min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden; }
-  body::before { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,170,0.03) 2px,rgba(0,255,170,0.03) 4px); pointer-events:none; }
-  .card { position:relative; background:linear-gradient(135deg,#0f1a2e,#060d1a); border-radius:16px; padding:45px 40px 35px; width:400px; border:1px solid rgba(0,255,170,0.25); box-shadow:0 0 40px rgba(0,255,170,0.08),inset 0 0 60px rgba(0,255,170,0.03); }
-  .card::after { content:''; position:absolute; top:-1px; left:20%; right:20%; height:2px; background:linear-gradient(90deg,transparent,#00ffaa,transparent); }
-  .monitor { font-size:3em; margin-bottom:5px; filter:drop-shadow(0 0 15px rgba(0,255,170,0.4)); }
-  .card h1 { color:#00ffaa; font-size:1.3em; letter-spacing:3px; text-transform:uppercase; text-shadow:0 0 20px rgba(0,255,170,0.3); margin-bottom:5px; }
-  .sub { color:#4a6a7a; font-size:0.8em; letter-spacing:2px; margin-bottom:25px; }
-  .card input { width:100%; padding:14px 18px; border-radius:8px; border:1px solid #1a3340; background:#050d14; color:#00ffaa; font-family:inherit; font-size:1.1em; text-align:center; margin-bottom:15px; letter-spacing:1px; transition:.3s; }
-  .card input:focus { outline:none; border-color:#00ffaa; box-shadow:0 0 20px rgba(0,255,170,0.15); }
-  .card input::placeholder { color:#1a3340; letter-spacing:1px; }
-  .card button { width:100%; padding:14px; background:linear-gradient(135deg,#00cc88,#009966); color:#02040a; border:none; border-radius:8px; font-family:inherit; font-size:1.1em; font-weight:bold; cursor:pointer; letter-spacing:2px; text-transform:uppercase; transition:.3s; box-shadow:0 0 20px rgba(0,255,170,0.15); }
-  .card button:hover { background:linear-gradient(135deg,#00ffaa,#00cc88); box-shadow:0 0 30px rgba(0,255,170,0.3); transform:translateY(-2px); }
-  .error { color:#ff4466; margin-top:12px; font-size:0.9em; text-shadow:0 0 10px rgba(255,68,102,0.3); }
-  .card a { display:block; margin-top:20px; color:#1a3340; text-decoration:none; font-size:0.85em; transition:.3s; }
-  .card a:hover { color:#4a6a7a; }
-  .scanline { position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.15) 3px,rgba(0,0,0,0.15) 4px); pointer-events:none; }
+  body { font-family:'Share Tech Mono','Courier New',monospace; background:radial-gradient(ellipse at center,#050510 0%,#000 100%); color:#fff; min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  body::before { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(59,130,246,0.04) 2px,rgba(59,130,246,0.04) 4px); pointer-events:none; }
+  .card { position:relative; background:linear-gradient(135deg,#0a0a2e,#050510); border-radius:16px; padding:45px 40px 35px; width:400px; border:1px solid rgba(59,130,246,0.25); box-shadow:0 0 40px rgba(59,130,246,0.08),inset 0 0 60px rgba(59,130,246,0.03); }
+  .card::after { content:''; position:absolute; top:-1px; left:20%; right:20%; height:2px; background:linear-gradient(90deg,transparent,#3b82f6,transparent); }
+  .card .logo { display:block; width:120px; margin:0 auto 10px; filter:drop-shadow(0 0 15px rgba(59,130,246,0.3)); }
+  .card h1 { color:#3b82f6; font-size:1.3em; letter-spacing:3px; text-transform:uppercase; text-shadow:0 0 20px rgba(59,130,246,0.3); margin-bottom:5px; }
+  .sub { color:#4a6a8a; font-size:0.8em; letter-spacing:2px; margin-bottom:25px; }
+  .card input { width:100%; padding:14px 18px; border-radius:8px; border:1px solid #1a3a8a; background:#050510; color:#3b82f6; font-family:inherit; font-size:1.1em; text-align:center; margin-bottom:15px; letter-spacing:1px; transition:.3s; }
+  .card input:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 20px rgba(59,130,246,0.15); }
+  .card input::placeholder { color:#1a3a8a; letter-spacing:1px; }
+  .card button { width:100%; padding:14px; background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; border:none; border-radius:8px; font-family:inherit; font-size:1.1em; font-weight:bold; cursor:pointer; letter-spacing:2px; text-transform:uppercase; transition:.3s; box-shadow:0 0 20px rgba(59,130,246,0.15); }
+  .card button:hover { background:linear-gradient(135deg,#3b82f6,#2563eb); box-shadow:0 0 30px rgba(59,130,246,0.3); transform:translateY(-2px); }
+  .error { color:#ef4444; margin-top:12px; font-size:0.9em; text-shadow:0 0 10px rgba(239,68,68,0.3); }
+  .card a { display:block; margin-top:20px; color:#1a3a8a; text-decoration:none; font-size:0.85em; transition:.3s; }
+  .card a:hover { color:#4a6a8a; }
+  .scanline { position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.2) 3px,rgba(0,0,0,0.2) 4px); pointer-events:none; }
 </style>
 </head>
 <body>
   <div class="scanline"></div>
   <div class="card">
-    <div class="monitor">🖥️</div>
+    <img class="logo" src="data:image/webp;base64,__LOGO3__" alt="Logo">
     <h1>Acceso Técnico</h1>
     <div class="sub">SISTEMA DE TURNOS v2.0</div>
     <form method="POST" action="/tecnico">
@@ -205,40 +209,40 @@ TECH_PAGE = """
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Share Tech Mono','Courier New',monospace; background:radial-gradient(ellipse at center,#0a0f1e 0%,#02040a 100%); min-height:100vh; padding:20px; overflow-x:hidden; display:flex; align-items:center; justify-content:center; }
-  body::before { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,170,0.03) 2px,rgba(0,255,170,0.03) 4px); pointer-events:none; }
-  .scanline { position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.15) 3px,rgba(0,0,0,0.15) 4px); pointer-events:none; }
-  .card { max-width:520px; width:100%; margin:0; background:linear-gradient(135deg,#0f1a2e,#060d1a); border-radius:16px; padding:30px; text-align:center; border:1px solid rgba(0,255,170,0.2); box-shadow:0 0 40px rgba(0,255,170,0.06),inset 0 0 60px rgba(0,255,170,0.02); position:relative; }
-  .card::after { content:''; position:absolute; top:-1px; left:20%; right:20%; height:2px; background:linear-gradient(90deg,transparent,#00ffaa,transparent); }
+  body { font-family:'Share Tech Mono','Courier New',monospace; background:radial-gradient(ellipse at center,#050510 0%,#000 100%); min-height:100vh; padding:20px; overflow-x:hidden; display:flex; align-items:center; justify-content:center; }
+  body::before { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(59,130,246,0.04) 2px,rgba(59,130,246,0.04) 4px); pointer-events:none; }
+  .scanline { position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.2) 3px,rgba(0,0,0,0.2) 4px); pointer-events:none; }
+  .card { max-width:520px; width:100%; margin:0; background:linear-gradient(135deg,#0a0a2e,#050510); border-radius:16px; padding:30px; text-align:center; border:1px solid rgba(59,130,246,0.2); box-shadow:0 0 40px rgba(59,130,246,0.06),inset 0 0 60px rgba(59,130,246,0.02); position:relative; }
+  .card::after { content:''; position:absolute; top:-1px; left:20%; right:20%; height:2px; background:linear-gradient(90deg,transparent,#3b82f6,transparent); }
   .header { display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:5px; }
-  .header .icon { font-size:2em; filter:drop-shadow(0 0 10px rgba(0,255,170,0.3)); }
-  .header .name { color:#00ffaa; font-size:1.2em; letter-spacing:2px; text-shadow:0 0 15px rgba(0,255,170,0.2); }
-  .status-bar { display:flex; justify-content:space-between; align-items:center; background:rgba(0,255,170,0.07); border:1px solid rgba(0,255,170,0.15); border-radius:8px; padding:12px 15px; margin:15px 0; }
-  .status-bar .label { color:#b0d4e8; font-size:0.9em; letter-spacing:1px; }
-  .status-bar .label strong { color:#00ffaa; }
-  .pend-list { text-align:left; margin:10px 0; max-height:260px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:#00ffaa transparent; }
+  .header .icon { font-size:2em; filter:drop-shadow(0 0 10px rgba(59,130,246,0.3)); }
+  .header .name { color:#3b82f6; font-size:1.2em; letter-spacing:2px; text-shadow:0 0 15px rgba(59,130,246,0.2); }
+  .status-bar { display:flex; justify-content:space-between; align-items:center; background:rgba(59,130,246,0.07); border:1px solid rgba(59,130,246,0.15); border-radius:8px; padding:12px 15px; margin:15px 0; }
+  .status-bar .label { color:#b0c4d8; font-size:0.9em; letter-spacing:1px; }
+  .status-bar .label strong { color:#3b82f6; }
+  .pend-list { text-align:left; margin:10px 0; max-height:260px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:#3b82f6 transparent; }
   .pend-list::-webkit-scrollbar { width:4px; }
-  .pend-list::-webkit-scrollbar-thumb { background:#00ffaa; border-radius:2px; }
-  .pend-item { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:rgba(0,255,170,0.03); border-radius:8px; margin-bottom:6px; border:1px solid rgba(0,255,170,0.08); transition:.3s; }
-  .pend-item:hover { border-color:rgba(0,255,170,0.2); background:rgba(0,255,170,0.06); }
+  .pend-list::-webkit-scrollbar-thumb { background:#3b82f6; border-radius:2px; }
+  .pend-item { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:rgba(59,130,246,0.03); border-radius:8px; margin-bottom:6px; border:1px solid rgba(59,130,246,0.08); transition:.3s; }
+  .pend-item:hover { border-color:rgba(59,130,246,0.2); background:rgba(59,130,246,0.06); }
   .pend-item .pos { color:#8ab4c8; font-size:0.9em; }
-  .pend-item .num { font-size:1.6em; font-weight:bold; color:#00ffaa; text-shadow:0 0 12px rgba(0,255,170,0.25); }
-  .empty-pend { color:#5a8a9a; text-align:center; padding:25px; font-size:1em; letter-spacing:1px; }
-  .empty-pend .led { display:inline-block; width:8px; height:8px; background:#5a8a9a; border-radius:50%; margin-right:8px; vertical-align:middle; animation:blink 2s infinite; }
+  .pend-item .num { font-size:1.6em; font-weight:bold; color:#3b82f6; text-shadow:0 0 12px rgba(59,130,246,0.25); }
+  .empty-pend { color:#4a6a8a; text-align:center; padding:25px; font-size:1em; letter-spacing:1px; }
+  .empty-pend .led { display:inline-block; width:8px; height:8px; background:#4a6a8a; border-radius:50%; margin-right:8px; vertical-align:middle; animation:blink 2s infinite; }
   @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
-  .btn { width:100%; padding:16px; background:linear-gradient(135deg,#00cc88,#009966); color:#02040a; border:none; border-radius:8px; font-family:inherit; font-size:1.2em; font-weight:bold; cursor:pointer; letter-spacing:2px; text-transform:uppercase; transition:.3s; box-shadow:0 0 20px rgba(0,255,170,0.12); margin-top:12px; }
-  .btn:hover:not(:disabled) { background:linear-gradient(135deg,#00ffaa,#00cc88); box-shadow:0 0 30px rgba(0,255,170,0.25); transform:translateY(-2px); }
-  .btn:disabled { background:#0a1520; color:#4a7a6a; cursor:not-allowed; box-shadow:none; border:1px solid #1a3340; }
-  .btn-off { background:#0a1520; color:#4a7a6a; cursor:not-allowed; box-shadow:none; border:1px solid #1a3340; }
-  .off-msg { color:#ff4466; font-size:0.9em; margin:12px 0; text-shadow:0 0 10px rgba(255,68,102,0.2); }
-  .back { display:block; text-align:center; margin-top:18px; color:#5a8a9a; text-decoration:none; font-size:0.85em; letter-spacing:1px; transition:.3s; }
-  .back:hover { color:#b0d4e8; }
-  .divider { height:1px; background:linear-gradient(90deg,transparent,rgba(0,255,170,0.15),transparent); margin:10px 0; }
+  .btn { width:100%; padding:16px; background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; border:none; border-radius:8px; font-family:inherit; font-size:1.2em; font-weight:bold; cursor:pointer; letter-spacing:2px; text-transform:uppercase; transition:.3s; box-shadow:0 0 20px rgba(59,130,246,0.12); margin-top:12px; }
+  .btn:hover:not(:disabled) { background:linear-gradient(135deg,#3b82f6,#2563eb); box-shadow:0 0 30px rgba(59,130,246,0.25); transform:translateY(-2px); }
+  .btn:disabled { background:#0a0a2e; color:#4a6a8a; cursor:not-allowed; box-shadow:none; border:1px solid #1a3a8a; }
+  .btn-off { background:#0a0a2e; color:#4a6a8a; cursor:not-allowed; box-shadow:none; border:1px solid #1a3a8a; }
+  .off-msg { color:#ef4444; font-size:0.9em; margin:12px 0; text-shadow:0 0 10px rgba(239,68,68,0.2); }
+  .back { display:block; text-align:center; margin-top:18px; color:#4a6a8a; text-decoration:none; font-size:0.85em; letter-spacing:1px; transition:.3s; }
+  .back:hover { color:#b0c4d8; }
+  .divider { height:1px; background:linear-gradient(90deg,transparent,rgba(59,130,246,0.15),transparent); margin:10px 0; }
   .asist-tech { margin:12px 0; display:flex; align-items:center; justify-content:center; gap:10px; }
-  .asist-tech .lbl { color:#5a8a9a; font-size:0.8em; letter-spacing:1px; }
-  .asist-tech button { padding:6px 18px; border-radius:6px; border:1px solid #1a3340; background:#050d14; color:#4a6a7a; font-family:inherit; font-size:0.85em; cursor:pointer; transition:.3s; letter-spacing:1px; }
-  .asist-tech button.on { border-color:#00ffaa; background:rgba(0,255,170,0.1); color:#00ffaa; }
-  .asist-tech button:hover { border-color:rgba(0,255,170,0.3); }
+  .asist-tech .lbl { color:#4a6a8a; font-size:0.8em; letter-spacing:1px; }
+  .asist-tech button { padding:6px 18px; border-radius:6px; border:1px solid #1a3a8a; background:#050510; color:#4a6a8a; font-family:inherit; font-size:0.85em; cursor:pointer; transition:.3s; letter-spacing:1px; }
+  .asist-tech button.on { border-color:#3b82f6; background:rgba(59,130,246,0.1); color:#3b82f6; }
+  .asist-tech button:hover { border-color:rgba(59,130,246,0.3); }
 </style>
 </head>
 <body>
@@ -333,20 +337,22 @@ LOGIN_PAGE = """
 <title>Acceso - Turnos</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Segoe UI',sans-serif; background:#0f172a; color:#fff; min-height:100vh; display:flex; align-items:center; justify-content:center; }
-  .card { background:#1e293b; border-radius:20px; padding:40px; text-align:center; width:360px; border:2px solid #334155; }
-  .card h1 { color:#38bdf8; margin-bottom:20px; }
-  .card input { width:100%; padding:14px; border-radius:10px; border:2px solid #334155; background:#0f172a; color:#fff; font-size:1.1em; text-align:center; margin-bottom:15px; }
-  .card input:focus { outline:none; border-color:#38bdf8; }
-  .card button { width:100%; padding:14px; background:#38bdf8; color:#0f172a; border:none; border-radius:10px; font-size:1.2em; font-weight:bold; cursor:pointer; }
-  .card button:hover { background:#0ea5e9; }
+  body { font-family:'Segoe UI',sans-serif; background:#0a0a0a; color:#fff; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+  .card { background:#0d0d2b; border-radius:20px; padding:40px; text-align:center; width:360px; border:2px solid #1a3a8a; }
+  .card .logo { height:60px; margin-bottom:15px; }
+  .card h1 { color:#3b82f6; margin-bottom:20px; font-size:1.3em; }
+  .card input { width:100%; padding:14px; border-radius:10px; border:2px solid #1a3a8a; background:#0a0a0a; color:#fff; font-size:1.1em; text-align:center; margin-bottom:15px; }
+  .card input:focus { outline:none; border-color:#3b82f6; }
+  .card button { width:100%; padding:14px; background:#3b82f6; color:#fff; border:none; border-radius:10px; font-size:1.2em; font-weight:bold; cursor:pointer; }
+  .card button:hover { background:#2563eb; }
   .error { color:#ef4444; margin-top:10px; }
 </style>
 </head>
 <body>
   <div class="card">
-    <h1>🏥 Sistema de Turnos</h1>
-    <p style="color:#94a3b8; margin-bottom:20px;">Ingrese su nombre de usuario</p>
+    <img class="logo" src="data:image/png;base64,__LOGO2__" alt="Logo">
+    <h1>Sistema de Turnos</h1>
+    <p style="color:#4a6a8a; margin-bottom:20px;">Ingrese su nombre de usuario</p>
     <form method="POST">
       <input type="text" name="username" placeholder="Usuario" required autofocus>
       <button type="submit">Ingresar</button>
@@ -367,47 +373,49 @@ CENTRAL_PAGE = """
 <title>Panel Central - Turnos</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Segoe UI',sans-serif; background:#f1f5f9; min-height:100vh; padding:20px; }
+  body { font-family:'Segoe UI',sans-serif; background:#0a0a0a; min-height:100vh; padding:20px; }
   .top { text-align:center; margin-bottom:15px; }
-  h1 { color:#0f172a; }
+  .top .logo { height:50px; margin-bottom:5px; }
+  h1 { color:#3b82f6; font-size:1.3em; }
+  .top .user { color:#4a6a8a; font-size:0.9em; margin-top:3px; }
   .nav-grid { display:flex; justify-content:center; gap:12px; margin:0 auto 25px; max-width:650px; }
-  .nav-card { width:240px; background:#1e293b; border-radius:15px; padding:20px; text-align:center; text-decoration:none; color:#fff; border:2px solid #334155; transition:.3s; cursor:pointer; display:block; }
+  .nav-card { width:240px; background:#0d0d2b; border-radius:15px; padding:20px; text-align:center; text-decoration:none; color:#fff; border:2px solid #1a3a8a; transition:.3s; cursor:pointer; display:block; }
   .nav-card:hover { transform:scale(1.04); }
-  .nav-card.pub:hover { border-color:#22c55e; background:#065f46; }
-  .nav-card.tec:hover { border-color:#38bdf8; background:#0c4a6e; }
-  .nav-card.adm { border-color:#fbbf24; background:#1e293b; }
+  .nav-card.pub:hover { border-color:#3b82f6; background:#0a0a2e; }
+  .nav-card.tec:hover { border-color:#60a5fa; background:#0d0d2b; }
   .nav-card .icon { font-size:2em; margin-bottom:5px; }
   .nav-card .tit { font-size:1.1em; font-weight:bold; }
-  .section-title { text-align:center; font-size:1.2em; color:#0f172a; margin:20px 0 10px; font-weight:bold; border-top:2px solid #e2e8f0; padding-top:20px; }
+  .section-title { text-align:center; font-size:1.2em; color:#3b82f6; margin:20px 0 10px; font-weight:bold; border-top:2px solid #1a3a8a; padding-top:20px; }
   .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:15px; max-width:1100px; margin:0 auto 20px; }
-  .card { background:#fff; border-radius:15px; padding:20px; text-align:center; box-shadow:0 3px 10px rgba(0,0,0,.1); border:2px solid #e2e8f0; }
+  .card { background:#0d0d2b; border-radius:15px; padding:20px; text-align:center; border:2px solid #1a3a8a; }
   .card.off { opacity:0.5; }
-  .card .vnum { font-size:1em; color:#0f172a; font-weight:bold; }
-  .card .current { font-size:2.5em; font-weight:bold; color:#0ea5e9; margin:8px 0; }
-  .card .current.none { color:#cbd5e1; }
-  .card .pend { color:#f59e0b; font-weight:bold; font-size:0.9em; }
-  .card .att { color:#16a34a; font-weight:bold; }
-  .btn { width:100%; padding:10px; background:#22c55e; color:#fff; border:none; border-radius:10px; font-size:1em; cursor:pointer; margin-top:6px; }
-  .btn-off { background:#94a3b8; }
+  .card .vnum { font-size:1em; color:#e2e8f0; font-weight:bold; }
+  .card .current { font-size:2.5em; font-weight:bold; color:#3b82f6; margin:8px 0; }
+  .card .current.none { color:#4a6a8a; }
+  .card .pend { color:#60a5fa; font-weight:bold; font-size:0.9em; }
+  .card .att { color:#3b82f6; font-weight:bold; }
+  .btn { width:100%; padding:10px; background:#2563eb; color:#fff; border:none; border-radius:10px; font-size:1em; cursor:pointer; margin-top:6px; }
+  .btn-off { background:#1a3a8a; }
   .actions { text-align:center; margin-bottom:20px; }
   .actions button { padding:10px 20px; margin:0 5px; border:none; border-radius:10px; cursor:pointer; font-weight:bold; }
-  .btn-print { background:#0ea5e9; color:#fff; }
-  .btn-reset { background:#ef4444; color:#fff; }
-  .btn-report { background:#8b5cf6; color:#fff; }
+  .btn-print { background:#3b82f6; color:#fff; }
+  .btn-reset { background:#dc2626; color:#fff; }
+  .btn-report { background:#6366f1; color:#fff; }
   .asistencia-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px; max-width:1100px; margin:0 auto 15px; }
-  .asist-item { display:flex; align-items:center; justify-content:space-between; background:#fff; border-radius:10px; padding:8px 15px; border:1px solid #e2e8f0; }
-  .asist-item .name { font-weight:bold; color:#0f172a; font-size:0.95em; }
+  .asist-item { display:flex; align-items:center; justify-content:space-between; background:#0d0d2b; border-radius:10px; padding:8px 15px; border:1px solid #1a3a8a; }
+  .asist-item .name { font-weight:bold; color:#e2e8f0; font-size:0.95em; }
   .asist-item .btns { display:flex; gap:6px; }
-  .asist-item .btns button { padding:5px 14px; border-radius:8px; border:2px solid #e2e8f0; background:#fff; cursor:pointer; font-size:0.85em; font-weight:bold; transition:.2s; }
-  .asist-item .btns button.on { border-color:#22c55e; background:#dcfce7; color:#15803d; }
-  .asist-item .btns button.off { border-color:#f59e0b; background:#fef3c7; color:#b45309; }
-  .asist-btn { margin:0 auto 15px; display:block; padding:10px 25px; background:#6366f1; color:#fff; border:none; border-radius:10px; font-size:1em; font-weight:bold; cursor:pointer; }
-  .asist-btn:hover { background:#4f46e5; }
-  #reporteSemanal { display:none; max-width:900px; margin:15px auto; background:#fff; border-radius:12px; padding:20px; overflow-x:auto; box-shadow:0 2px 10px rgba(0,0,0,.1); }
-  table { width:100%; max-width:700px; margin:0 auto 20px; border-collapse:collapse; background:#fff; border-radius:10px; overflow:hidden; }
-  th, td { padding:12px; text-align:center; border-bottom:1px solid #eee; }
-  th { background:#1e293b; color:#fff; }
-  .back { display:block; text-align:center; color:#0ea5e9; text-decoration:none; margin-top:20px; }
+  .asist-item .btns button { padding:5px 14px; border-radius:8px; border:2px solid #1a3a8a; background:#0a0a0a; color:#4a6a8a; cursor:pointer; font-size:0.85em; font-weight:bold; transition:.2s; }
+  .asist-item .btns button.on { border-color:#3b82f6; background:rgba(59,130,246,0.15); color:#3b82f6; }
+  .asist-btn { margin:0 auto 15px; display:block; padding:10px 25px; background:#2563eb; color:#fff; border:none; border-radius:10px; font-size:1em; font-weight:bold; cursor:pointer; }
+  .asist-btn:hover { background:#1d4ed8; }
+  #reporteSemanal { display:none; max-width:900px; margin:15px auto; background:#0d0d2b; border-radius:12px; padding:20px; overflow-x:auto; border:1px solid #1a3a8a; }
+  table { width:100%; max-width:700px; margin:0 auto 20px; border-collapse:collapse; background:#0d0d2b; border-radius:10px; overflow:hidden; }
+  th, td { padding:12px; text-align:center; border-bottom:1px solid #1a3a8a; }
+  th { background:#0a0a2e; color:#3b82f6; }
+  td { color:#e2e8f0; }
+  .back { display:block; text-align:center; color:#3b82f6; text-decoration:none; margin-top:20px; }
+  .back:hover { color:#60a5fa; }
   @media print {
     .nav-grid, .grid, .actions, .back { display:none; }
     table { box-shadow:none; }
@@ -415,7 +423,11 @@ CENTRAL_PAGE = """
 </style>
 </head>
 <body>
-  <div class="top"><h1>🏥 Sistema de Turnos</h1><p style="color:#94a3b8; margin-top:5px;">Usuario: __USER__</p></div>
+  <div class="top">
+    <img class="logo" src="data:image/png;base64,__LOGO2__" alt="Logo">
+    <h1>Sistema de Turnos</h1>
+    <div class="user">Usuario: __USER__</div>
+  </div>
   <div class="nav-grid">
     <a class="nav-card pub" href="/" target="_blank">
       <div class="icon">🖥️</div>
@@ -571,20 +583,21 @@ CENTRAL_PAGE = """
 # ─── RUTAS ──────────────────────────────────────────────────────
 @app.route("/")
 def display():
-    return DISPLAY_PAGE
+    return DISPLAY_PAGE.replace("__LOGO1__", LOGO1_B64)
 
 @app.route("/central", methods=["GET", "POST"])
 def central():
+    login = LOGIN_PAGE.replace("__LOGO2__", LOGO2_B64)
     if request.method == "POST":
         user = request.form.get("username", "").strip()
         if user in admins:
             session["user"] = user
             return redirect("/central")
         else:
-            return render_template_string(LOGIN_PAGE, error="Usuario no autorizado")
+            return render_template_string(login, error="Usuario no autorizado")
     if "user" not in session:
-        return render_template_string(LOGIN_PAGE, error=None)
-    return CENTRAL_PAGE.replace("__USER__", session["user"])
+        return render_template_string(login, error=None)
+    return CENTRAL_PAGE.replace("__USER__", session["user"]).replace("__LOGO2__", LOGO2_B64)
 
 @app.route("/logout")
 def logout():
@@ -609,10 +622,10 @@ def tech_login():
             session["tecnico"] = matched
             return redirect("/tecnico/" + str(matched))
         else:
-            return render_template_string(TECH_LOGIN, error="Nombre no encontrado")
+            return render_template_string(TECH_LOGIN.replace("__LOGO3__", LOGO3_B64), error="Nombre no encontrado")
     if "tecnico" in session:
         return redirect("/tecnico/" + str(session["tecnico"]))
-    return render_template_string(TECH_LOGIN, error=None)
+    return render_template_string(TECH_LOGIN.replace("__LOGO3__", LOGO3_B64), error=None)
 
 @app.route("/tecnico/<int:v>")
 def tech_view(v):
