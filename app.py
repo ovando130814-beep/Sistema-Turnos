@@ -531,7 +531,9 @@ CENTRAL_PAGE = """
   }
   function render(data) {
     const grid = document.getElementById('grid'); grid.innerHTML = '';
+    const saved = data.attendance_today || {};
     for (let i = 0; i < 8; i++) {
+      if (saved[i]) asistencia[i] = saved[i];
       const pend = data.pending[i]; const on = data.active[i];
       const first = pend.length > 0 ? pend[0] : null;
       const div = document.createElement('div');
@@ -680,7 +682,9 @@ def guardar_asistencia():
         return jsonify({"success": False, "error": "Datos invalidos"})
     with lock:
         hoy = str(date.today())
-        state["attendance"][hoy] = data["registro"]
+        current = state["attendance"].get(hoy, {})
+        current.update(data["registro"])
+        state["attendance"][hoy] = current
     return jsonify({"success": True})
 
 @app.route("/api/informe_semanal")
