@@ -585,8 +585,7 @@ CENTRAL_PAGE = """
         html += '<tr><td style="font-weight:bold;padding:6px 8px;border-bottom:1px solid #1a3a8a;color:#e2e8f0;">' + techNames[i] + '</td>';
         dias.forEach(d => {
           const v = (data[d] || {})[i] || '—';
-          const icono = opts[v] || '—';
-          html += '<td style="padding:6px 8px;text-align:center;border-bottom:1px solid #1a3a8a;color:#e2e8f0;">' + icono + '</td>';
+          html += '<td style="padding:6px 8px;text-align:center;border-bottom:1px solid #1a3a8a;color:#e2e8f0;white-space:nowrap;">' + (opts[v] || '—') + '</td>';
         });
         html += '</tr>';
       }
