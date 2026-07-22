@@ -100,15 +100,15 @@ DISPLAY_PAGE = """
       if (d.success) {
         document.getElementById('anuncio').className = 'anuncio';
         document.getElementById('anum').textContent = d.num;
-        document.getElementById('asub').textContent = 'Tecnico ' + techNames[d.ventanilla-1];
-        document.querySelector('#anuncio .msg').textContent = 'Usuario ' + d.num + ', el tecnico ' + techNames[d.ventanilla-1] + ' le atendera';
+        document.getElementById('asub').textContent = 'Técnico ' + techNames[d.ventanilla-1];
+        document.querySelector('#anuncio .msg').textContent = 'Usuario ' + d.num + ', el Técnico ' + techNames[d.ventanilla-1] + ' le atenderá...';
         hablar(d.num, techNames[d.ventanilla-1]);
       }
     });
   }
   function hablar(num, tec) {
     if ('speechSynthesis' in window) {
-      const u = new SpeechSynthesisUtterance('Usuario ' + num + ', el tecnico ' + tec + ' le atendera');
+      const u = new SpeechSynthesisUtterance('Usuario ' + num + ', el Técnico ' + tec + ' le atenderá...');
       u.lang = 'es-ES'; u.rate = 0.85;
       window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
     }
@@ -147,8 +147,8 @@ DISPLAY_PAGE = """
         ultimoTs = ev.ts;
         document.getElementById('anuncio').className = 'anuncio';
         document.getElementById('anum').textContent = ev.num;
-        document.getElementById('asub').textContent = 'Tecnico ' + techNames[ev.ventanilla-1];
-        document.querySelector('#anuncio .msg').textContent = 'Usuario ' + ev.num + ', el tecnico ' + techNames[ev.ventanilla-1] + ' le atendera';
+        document.getElementById('asub').textContent = 'Técnico ' + techNames[ev.ventanilla-1];
+        document.querySelector('#anuncio .msg').textContent = 'Usuario ' + ev.num + ', el Técnico ' + techNames[ev.ventanilla-1] + ' le atenderá...';
         hablar(ev.num, techNames[ev.ventanilla-1]);
       }
     });
