@@ -69,10 +69,11 @@ DISPLAY_PAGE = """
   .win { background:#0d0d2b; border-radius:clamp(12px,2vw,20px); padding:clamp(12px,2vw,20px); text-align:center; border:3px solid #1a3a8a; min-height:120px; display:flex; flex-direction:column; justify-content:center; }
   .win.active { border-color:#3b82f6; }
   .win.off { opacity:0.35; }
-  .win .num { font-size:clamp(1.8em,4vw,2.8em); font-weight:bold; color:#fbbf24; }
+  .win .num { font-size:clamp(1.8em,4vw,2.8em); font-weight:bold; color:#ef4444; }
   .win .lbl { font-size:clamp(0.75em,1.8vw,1em); color:#94a3b8; margin-top:6px; }
   .win .empty { color:#4a6a8a; font-size:clamp(1.5em,3vw,2.2em); }
-  .win .count { font-size:clamp(0.7em,1.5vw,0.9em); color:#60a5fa; margin-top:4px; }
+  .win .count { font-size:clamp(0.7em,1.5vw,0.9em); color:#ef4444; margin-top:4px; }
+  .win .attended { font-size:clamp(0.7em,1.5vw,0.9em); color:#22c55e; margin-top:2px; }
 </style>
 </head>
 <body>
@@ -124,11 +125,17 @@ DISPLAY_PAGE = """
       const pend = data.pending[i]; const on = data.active[i];
       const div = document.createElement('div');
       div.className = 'win ' + (on ? 'active' : 'off');
+      const atend = data.attended[i] || 0;
+      let html = '';
       if (pend.length > 0) {
-        div.innerHTML = '<div class="num">' + pend[0] + '</div><div class="lbl">' + techNames[i] + (on ? '' : ' (off)') + '</div><div class="count">Esperando: ' + pend.length + '</div>';
+        html = '<div class="num">' + pend[0] + '</div>';
       } else {
-        div.innerHTML = '<div class="empty">---</div><div class="lbl">' + techNames[i] + (on ? '' : ' (off)') + '</div>';
+        html = '<div class="empty">---</div>';
       }
+      html += '<div class="lbl">' + techNames[i] + (on ? '' : ' (off)') + '</div>';
+      if (pend.length > 0) html += '<div class="count">En espera: ' + pend.length + '</div>';
+      if (atend > 0) html += '<div class="attended">Atendidos: ' + atend + '</div>';
+      div.innerHTML = html;
       grid.appendChild(div);
     }
   }
