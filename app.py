@@ -27,7 +27,6 @@ state = {
     "attended": [0] * 8,
     "day": str(date.today()),
     "last_event": None,
-    "attendance": {},
 }
 
 def broadcast(event):
@@ -247,11 +246,6 @@ TECH_PAGE = """
   .back { display:block; text-align:center; margin-top:18px; color:#4a6a8a; text-decoration:none; font-size:0.85em; letter-spacing:1px; transition:.3s; }
   .back:hover { color:#b0c4d8; }
   .divider { height:1px; background:linear-gradient(90deg,transparent,rgba(59,130,246,0.15),transparent); margin:10px 0; }
-  .asist-tech { margin:12px 0; display:flex; align-items:center; justify-content:center; gap:10px; }
-  .asist-tech .lbl { color:#4a6a8a; font-size:0.8em; letter-spacing:1px; }
-  .asist-tech button { padding:6px 18px; border-radius:6px; border:1px solid #1a3a8a; background:#050510; color:#4a6a8a; font-family:inherit; font-size:0.85em; cursor:pointer; transition:.3s; letter-spacing:1px; }
-  .asist-tech button.on { border-color:#3b82f6; background:rgba(59,130,246,0.1); color:#3b82f6; }
-  .asist-tech button:hover { border-color:rgba(59,130,246,0.3); }
 </style>
 </head>
 <body>
@@ -266,12 +260,7 @@ TECH_PAGE = """
       <span class="label">👤 Tienes <strong id="count">0</strong> usuarios en espera</span>
     </div>
     <div class="divider"></div>
-    <div class="asist-tech">
-      <span class="lbl">📍 SOPORTE:</span>
-      <button id="asistSede" onclick="setAsist('sede')">🏢 Sede</button>
-      <button id="asistMovil" onclick="setAsist('movil')">🚐 Móvil</button>
-    </div>
-    <div class="divider"></div>
+
     <div class="pend-list" id="pendList">
       <div class="empty-pend"><span class="led"></span>SIN TURNOS EN ESPERA</div>
     </div>
@@ -316,22 +305,8 @@ TECH_PAGE = """
       actualizar();
     });
   }
-  function initAsist() {
-    fetch('/api/estado').then(r=>r.json()).then(data => {
-      const val = (data.attendance_today || {})[v-1] || 'sede';
-      document.getElementById('asistSede').className = val === 'sede' ? 'on' : '';
-      document.getElementById('asistMovil').className = val === 'movil' ? 'on' : '';
-    });
-  }
-  function setAsist(tipo) {
-    const obj = {}; obj[v-1] = tipo;
-    fetch('/api/asistencia', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({registro: obj})})
-      .then(r=>r.json()).then(d => {
-        if (d.success) { initAsist(); }
-      });
-  }
   function actualizar() { fetch('/api/estado').then(r=>r.json()).then(render); }
-  initAsist(); actualizar(); setInterval(actualizar, 1500);
+  actualizar(); setInterval(actualizar, 1500);
 </script>
 </body>
 </html>
@@ -409,16 +384,7 @@ CENTRAL_PAGE = """
   .actions button { padding:10px 20px; margin:0 5px; border:none; border-radius:10px; cursor:pointer; font-weight:bold; }
   .btn-print { background:#3b82f6; color:#fff; }
   .btn-reset { background:#dc2626; color:#fff; }
-  .btn-report { background:#6366f1; color:#fff; }
-  .asistencia-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px; max-width:1100px; margin:0 auto 15px; }
-  .asist-item { display:flex; align-items:center; justify-content:space-between; background:#0d0d2b; border-radius:10px; padding:8px 15px; border:1px solid #1a3a8a; }
-  .asist-item .name { font-weight:bold; color:#e2e8f0; font-size:0.95em; }
-  .asist-item .btns { display:flex; gap:6px; }
-  .asist-item .btns button { padding:5px 14px; border-radius:8px; border:2px solid #1a3a8a; background:#0a0a0a; color:#4a6a8a; cursor:pointer; font-size:0.85em; font-weight:bold; transition:.2s; }
-  .asist-item .btns button.on { border-color:#3b82f6; background:rgba(59,130,246,0.15); color:#3b82f6; }
-  .asist-btn { margin:0 auto 15px; display:block; padding:10px 25px; background:#2563eb; color:#fff; border:none; border-radius:10px; font-size:1em; font-weight:bold; cursor:pointer; }
-  .asist-btn:hover { background:#1d4ed8; }
-  #reporteSemanal { display:none; max-width:900px; margin:15px auto; background:#0d0d2b; border-radius:12px; padding:20px; overflow-x:auto; border:1px solid #1a3a8a; }
+
   table { width:100%; max-width:700px; margin:0 auto 20px; border-collapse:collapse; background:#0d0d2b; border-radius:10px; overflow:hidden; }
   th, td { padding:12px; text-align:center; border-bottom:1px solid #1a3a8a; }
   th { background:#0a0a2e; color:#3b82f6; }
@@ -454,114 +420,28 @@ CENTRAL_PAGE = """
   <div class="actions">
     <button class="btn-print" onclick="window.print()">🖨️ Imprimir informe del día</button>
     <button class="btn-reset" onclick="resetSistema()">🗑️ Reiniciar sistema</button>
-    <button class="btn-report" onclick="generarInforme()">📊 Informe semanal</button>
   </div>
 
-  <div class="section-title">Asistencia del Día</div>
-  <div class="asistencia-grid" id="asistGrid"></div>
-  <button class="asist-btn" onclick="guardarAsistencia()">💾 Guardar Asistencia</button>
-
-  <div id="reporteSemanal"></div>
-
   <table id="report">
-    <thead><tr><th>Técnico</th><th>Estado</th><th>Soporte</th><th>Espera / Atendidos</th></tr></thead>
+    <thead><tr><th>Técnico</th><th>Estado</th><th>Espera / Atendidos</th></tr></thead>
     <tbody id="reportBody"></tbody>
-    <tfoot><tr><th>Total</th><th></th><th></th><th id="totalAtt">0</th></tr></tfoot>
+    <tfoot><tr><th>Total</th><th></th><th id="totalAtt">0</th></tr></tfoot>
   </table>
 
   <a href="/" class="back">← Pantalla pública</a> | <a href="/logout" class="back">Cerrar sesión</a>
 
 <script>
   const techNames = ['Mauricio Amaya', 'Julio Castillo', 'Jorge Hernandez', 'Yesica Bonilla', 'Alba Zelaya', 'Manuel Herrera', 'William Espiñal', 'Rene Quintanilla'];
-  let asistencia = {};
-  function initAsistencia() {
-    fetch('/api/estado').then(r=>r.json()).then(data => {
-      const saved = data.attendance_today || {};
-      asistencia = {};
-      for (let i = 0; i < 8; i++) asistencia[i] = saved[i] || 'sede';
-      renderAsistencia();
-    });
-  }
-  function renderAsistencia() {
-    const grid = document.getElementById('asistGrid'); if (!grid) return;
-    grid.innerHTML = '';
-    for (let i = 0; i < 8; i++) {
-      const val = asistencia[i] || 'sede';
-      const div = document.createElement('div');
-      div.className = 'asist-item';
-      const name = document.createElement('span');
-      name.className = 'name';
-      name.textContent = techNames[i];
-      div.appendChild(name);
-      const btns = document.createElement('div');
-      btns.className = 'btns';
-      const btnSede = document.createElement('button');
-      btnSede.className = val === 'sede' ? 'on' : '';
-      btnSede.textContent = '🏢 Sede';
-      btnSede.onclick = function() { toggleAsist(i, 'sede'); };
-      const btnMovil = document.createElement('button');
-      btnMovil.className = val === 'movil' ? 'on' : '';
-      btnMovil.textContent = '🚐 Móvil';
-      btnMovil.onclick = function() { toggleAsist(i, 'movil'); };
-      btns.appendChild(btnSede);
-      btns.appendChild(btnMovil);
-      div.appendChild(btns);
-      grid.appendChild(div);
-    }
-  }
-  function toggleAsist(i, tipo) {
-    asistencia[i] = tipo;
-    const items = document.getElementById('asistGrid').children;
-    if (!items[i]) return;
-    const btns = items[i].querySelectorAll('button');
-    if (btns.length >= 2) {
-      btns[0].className = tipo === 'sede' ? 'on' : '';
-      btns[1].className = tipo === 'movil' ? 'on' : '';
-    }
-  }
-  function guardarAsistencia() {
-    fetch('/api/asistencia', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({registro: asistencia})})
-      .then(r=>r.json()).then(d=>{
-        if(d.success) alert('Asistencia guardada correctamente');
-        else alert('Error: ' + (d.error || 'desconocido'));
-      }).catch(e => alert('Error de red: ' + e.message));
-  }
-  function generarInforme() {
-    fetch('/api/informe_semanal').then(r=>r.json()).then(data => {
-      const dias = Object.keys(data).sort();
-      let html = '<table style="width:100%;border-collapse:collapse;font-size:0.9em;"><thead><tr><th>Técnico</th>';
-      dias.forEach(d => {
-        const parts = d.split('-');
-        html += '<th>' + parts[2] + '/' + parts[1] + '</th>';
-      });
-      html += '</tr></thead><tbody>';
-      for (let i = 0; i < 8; i++) {
-        html += '<tr><td style="font-weight:bold;padding:8px;border-bottom:1px solid #e2e8f0;">' + techNames[i] + '</td>';
-        dias.forEach(d => {
-          const v = (data[d] || {})[i] || '—';
-          const icono = v === 'movil' ? '🚐' : v === 'sede' ? '🏢' : '—';
-          html += '<td style="padding:8px;text-align:center;border-bottom:1px solid #e2e8f0;">' + icono + '</td>';
-        });
-        html += '</tr>';
-      }
-      html += '</tbody></table>';
-      const el = document.getElementById('reporteSemanal');
-      el.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><h3 style="margin:0;">📊 Informe Semanal</h3><button onclick="this.parentElement.parentElement.style.display=\\'none\\'" style="background:#ef4444;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;">Cerrar</button></div>' + html;
-      el.style.display = 'block';
-    });
-  }
+
   function render(data) {
     const grid = document.getElementById('grid'); grid.innerHTML = '';
-    const saved = data.attendance_today || {};
     for (let i = 0; i < 8; i++) {
-      if (saved[i]) asistencia[i] = saved[i];
       const pend = data.pending[i]; const on = data.active[i];
       const first = pend.length > 0 ? pend[0] : null;
       const div = document.createElement('div');
       div.className = 'card' + (on ? '' : ' off');
-      const asIcon = ((data.attendance_today||{})[i]||'') === 'movil' ? '🚐' : ((data.attendance_today||{})[i]||'') === 'sede' ? '🏢' : '';
       div.innerHTML =
-        '<div class="vnum">' + techNames[i] + ' ' + asIcon + '</div>' +
+        '<div class="vnum">' + techNames[i] + '</div>' +
         '<div class="current ' + (first ? '' : 'none') + '">' + (first ? first : '---') + '</div>' +
         '<div class="pend">En espera: ' + pend.length + '</div>' +
         '<div class="att">Atendidos: ' + data.attended[i] + '</div>' +
@@ -572,9 +452,8 @@ CENTRAL_PAGE = """
     let total = 0;
     for (let i = 0; i < 8; i++) {
       total += data.attended[i];
-      const as2 = ((data.attendance_today||{})[i]||'') === 'movil' ? '🚐 Móvil' : ((data.attendance_today||{})[i]||'') === 'sede' ? '🏢 Sede' : '—';
       const tr = document.createElement('tr');
-      tr.innerHTML = '<td>' + techNames[i] + '</td><td>' + (data.active[i] ? '🟢 Activo' : '⚪ Inactivo') + '</td><td>' + as2 + '</td><td>Espera: ' + data.pending[i].length + ' / Atend: ' + data.attended[i] + '</td>';
+      tr.innerHTML = '<td>' + techNames[i] + '</td><td>' + (data.active[i] ? '🟢 Activo' : '⚪ Inactivo') + '</td><td>Espera: ' + data.pending[i].length + ' / Atend: ' + data.attended[i] + '</td>';
       rb.appendChild(tr);
     }
     document.getElementById('totalAtt').textContent = total;
@@ -582,7 +461,6 @@ CENTRAL_PAGE = """
   function toggle(v) { fetch('/api/toggle_tecnico/' + v, {method:'POST'}).then(()=>actualizar()); }
   function resetSistema() { if (confirm('¿Reiniciar todo el sistema?')) fetch('/api/reset', {method:'POST'}).then(()=>actualizar()); }
   function actualizar() { fetch('/api/estado').then(r=>r.json()).then(render).catch(e => console.error('Error polling:', e)); }
-  initAsistencia();
   actualizar(); setInterval(actualizar, 1500);
 </script>
 </body>
@@ -693,33 +571,8 @@ def estado():
             "pending": [list(q) for q in state["pending"]],
             "active": list(state["active"]),
             "attended": list(state["attended"]),
-            "last_event": state["last_event"],
-            "attendance_today": state["attendance"].get(str(date.today()), {})
+            "last_event": state["last_event"]
         })
-
-@app.route("/api/asistencia", methods=["POST"])
-def guardar_asistencia():
-    data = request.get_json()
-    if not data or "registro" not in data:
-        return jsonify({"success": False, "error": "Datos invalidos"})
-    with lock:
-        hoy = str(date.today())
-        current = state["attendance"].get(hoy, {})
-        current.update(data["registro"])
-        state["attendance"][hoy] = current
-    return jsonify({"success": True})
-
-@app.route("/api/informe_semanal")
-def informe_semanal():
-    from datetime import timedelta
-    hoy = date.today()
-    lunes = hoy - timedelta(days=hoy.weekday())
-    with lock:
-        report = {}
-        for i in range(7):
-            d = str(lunes + timedelta(days=i))
-            report[d] = state["attendance"].get(d, {})
-    return jsonify(report)
 
 @app.route("/api/reset", methods=["POST"])
 def reset():
@@ -729,7 +582,6 @@ def reset():
         state["active"] = [True] * 8
         state["attended"] = [0] * 8
         state["last_event"] = None
-        state["attendance"] = {}
     return jsonify({"success": True})
 
 if __name__ == "__main__":
