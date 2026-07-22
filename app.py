@@ -99,8 +99,8 @@ DISPLAY_PAGE = """
       if (d.success) {
         document.getElementById('anuncio').className = 'anuncio';
         document.getElementById('anum').textContent = d.num;
-        document.getElementById('asub').textContent = techNames[d.ventanilla-1];
-        document.querySelector('#anuncio .msg').textContent = 'Su turno es:';
+        document.getElementById('asub').textContent = 'Tecnico ' + techNames[d.ventanilla-1];
+        document.querySelector('#anuncio .msg').textContent = 'Usuario ' + d.num + ', el tecnico ' + techNames[d.ventanilla-1] + ' le atendera';
         hablar(d.num, techNames[d.ventanilla-1]);
       }
     });
