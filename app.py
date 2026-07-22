@@ -13,7 +13,7 @@ from flask import Flask, render_template_string, request, jsonify, redirect, ses
 app = Flask(__name__)
 app.secret_key = 'turnos-secret-key-cambiar'
 
-admins = ['Carmen Cruz', 'Edwin Ovando']
+admins = ['Carmen Cruz', 'Edwin Ovando', 'Carmen Elena']
 
 with open('static/1.jpg', 'rb') as f: LOGO1_B64 = __import__('base64').b64encode(f.read()).decode()
 with open('static/2.png', 'rb') as f: LOGO2_B64 = __import__('base64').b64encode(f.read()).decode()
@@ -27,6 +27,7 @@ state = {
     "attended": [[] for _ in range(8)],
     "day": str(date.today()),
     "last_event": None,
+    "attendance": {},
 }
 
 def broadcast(event):
@@ -249,6 +250,15 @@ TECH_PAGE = """
   .back { display:block; text-align:center; margin-top:18px; color:#4a6a8a; text-decoration:none; font-size:0.85em; letter-spacing:1px; transition:.3s; }
   .back:hover { color:#b0c4d8; }
   .divider { height:1px; background:linear-gradient(90deg,transparent,rgba(59,130,246,0.15),transparent); margin:10px 0; }
+  .asist-tech { margin:8px 0; display:flex; align-items:center; justify-content:center; gap:6px; flex-wrap:wrap; }
+  .asist-tech .lbl { color:#4a6a8a; font-size:0.8em; letter-spacing:1px; width:100%; text-align:center; margin-bottom:4px; }
+  .asist-tech button { padding:4px 10px; border-radius:6px; border:2px solid #1a3a8a; background:#050510; color:#4a6a8a; font-family:inherit; font-size:0.75em; cursor:pointer; transition:.3s; letter-spacing:1px; }
+  .asist-tech button.on.sede { border-color:#3b82f6; background:rgba(59,130,246,0.1); color:#3b82f6; }
+  .asist-tech button.on.movil { border-color:#f59e0b; background:rgba(245,158,11,0.1); color:#f59e0b; }
+  .asist-tech button.on.mision { border-color:#8b5cf6; background:rgba(139,92,246,0.1); color:#8b5cf6; }
+  .asist-tech button.on.ausente { border-color:#ef4444; background:rgba(239,68,68,0.1); color:#ef4444; }
+  .asist-tech button.on.incapacidad { border-color:#f97316; background:rgba(249,115,22,0.1); color:#f97316; }
+  .asist-tech button.on.consulta { border-color:#14b8a6; background:rgba(20,184,166,0.1); color:#14b8a6; }
 </style>
 </head>
 <body>
@@ -261,6 +271,10 @@ TECH_PAGE = """
     <div class="divider"></div>
     <div class="status-bar">
       <span class="label">👤 Tienes <strong id="count">0</strong> usuarios en espera</span>
+    </div>
+    <div class="divider"></div>
+    <div class="asist-tech" id="asistTech">
+      <div class="lbl">📍 MI ASISTENCIA:</div>
     </div>
     <div class="divider"></div>
 
@@ -278,6 +292,35 @@ TECH_PAGE = """
 
 <script>
   const v = __V__;
+  const asistOpts = [
+    {key:'sede', lbl:'🏢 Sede', cls:'sede'},
+    {key:'movil', lbl:'🚐 Móvil', cls:'movil'},
+    {key:'mision', lbl:'🏛️ M. Oficial', cls:'mision'},
+    {key:'ausente', lbl:'❌ Ausente', cls:'ausente'},
+    {key:'incapacidad', lbl:'🏥 Incapacidad', cls:'incapacidad'},
+    {key:'consulta', lbl:'📋 Consulta', cls:'consulta'}
+  ];
+  function initAsist() {
+    fetch('/api/estado').then(r=>r.json()).then(data => {
+      const val = (data.attendance_today || {})[v-1] || 'sede';
+      renderAsist(val);
+    });
+  }
+  function renderAsist(val) {
+    const container = document.getElementById('asistTech');
+    let html = '<div class="lbl">📍 MI ASISTENCIA:</div>';
+    asistOpts.forEach(o => {
+      html += '<button class="' + (val === o.key ? 'on ' + o.cls : '') + '" onclick="setAsist(\'' + o.key + '\')">' + o.lbl + '</button>';
+    });
+    container.innerHTML = html;
+  }
+  function setAsist(tipo) {
+    const obj = {}; obj[v-1] = tipo;
+    fetch('/api/asistencia', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({registro: obj})})
+      .then(r=>r.json()).then(d => {
+        if (d.success) { renderAsist(tipo); }
+      });
+  }
   function render(data) {
     const pend = data.pending[v-1]; const atend = data.attended[v-1] || [];
     const on = data.active[v-1];
@@ -326,7 +369,7 @@ TECH_PAGE = """
     });
   }
   function actualizar() { fetch('/api/estado').then(r=>r.json()).then(render); }
-  actualizar(); setInterval(actualizar, 1500);
+  initAsist(); actualizar(); setInterval(actualizar, 1500);
 </script>
 </body>
 </html>
@@ -411,8 +454,22 @@ CENTRAL_PAGE = """
   td { color:#e2e8f0; }
   .back { display:block; text-align:center; color:#3b82f6; text-decoration:none; margin-top:20px; }
   .back:hover { color:#60a5fa; }
+  .asistencia-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:10px; max-width:1100px; margin:0 auto 15px; }
+  .asist-item { display:flex; align-items:center; justify-content:space-between; gap:8px; background:#0d0d2b; border-radius:10px; padding:8px 12px; border:1px solid #1a3a8a; flex-wrap:wrap; }
+  .asist-item .name { font-weight:bold; color:#e2e8f0; font-size:0.9em; min-width:120px; }
+  .asist-item .btns { display:flex; gap:4px; flex-wrap:wrap; }
+  .asist-item .btns button { padding:4px 10px; border-radius:6px; border:2px solid #1a3a8a; background:#0a0a0a; color:#4a6a8a; cursor:pointer; font-size:0.75em; font-weight:bold; transition:.2s; }
+  .asist-item .btns button.on { border-color:#3b82f6; background:rgba(59,130,246,0.15); color:#3b82f6; }
+  .asist-item .btns button.on.sede { border-color:#3b82f6; background:rgba(59,130,246,0.15); color:#3b82f6; }
+  .asist-item .btns button.on.movil { border-color:#f59e0b; background:rgba(245,158,11,0.15); color:#f59e0b; }
+  .asist-item .btns button.on.mision { border-color:#8b5cf6; background:rgba(139,92,246,0.15); color:#8b5cf6; }
+  .asist-item .btns button.on.ausente { border-color:#ef4444; background:rgba(239,68,68,0.15); color:#ef4444; }
+  .asist-item .btns button.on.incapacidad { border-color:#f97316; background:rgba(249,115,22,0.15); color:#f97316; }
+  .asist-item .btns button.on.consulta { border-color:#14b8a6; background:rgba(20,184,166,0.15); color:#14b8a6; }
+  .asist-btn { margin:0 auto 15px; display:block; padding:10px 25px; background:#2563eb; color:#fff; border:none; border-radius:10px; font-size:1em; font-weight:bold; cursor:pointer; }
+  .asist-btn:hover { background:#1d4ed8; }
   @media print {
-    .nav-grid, .grid, .actions, .back { display:none; }
+    .nav-grid, .grid, .actions, .asistencia-grid, .asist-btn, .back { display:none; }
     table { box-shadow:none; }
   }
 </style>
@@ -442,6 +499,10 @@ CENTRAL_PAGE = """
     <button class="btn-reset" onclick="resetSistema()">🗑️ Reiniciar sistema</button>
   </div>
 
+  <div class="section-title">Asistencia del Día</div>
+  <div class="asistencia-grid" id="asistGrid"></div>
+  <button class="asist-btn" onclick="guardarAsistencia()">💾 Guardar Asistencia</button>
+
   <table id="report">
     <thead><tr><th>Técnico</th><th>Estado</th><th>Espera / Atendidos</th></tr></thead>
     <tbody id="reportBody"></tbody>
@@ -452,7 +513,59 @@ CENTRAL_PAGE = """
 
 <script>
   const techNames = ['Mauricio Amaya', 'Julio Castillo', 'Jorge Hernandez', 'Yesica Bonilla', 'Alba Zelaya', 'Manuel Herrera', 'William Espiñal', 'Rene Quintanilla'];
+  const asistOpts = [
+    {key:'sede', lbl:'🏢 Sede', cls:'sede'},
+    {key:'movil', lbl:'🚐 Móvil', cls:'movil'},
+    {key:'mision', lbl:'🏛️ Misión Oficial', cls:'mision'},
+    {key:'ausente', lbl:'❌ Ausente', cls:'ausente'},
+    {key:'incapacidad', lbl:'🏥 Incapacidad', cls:'incapacidad'},
+    {key:'consulta', lbl:'📋 Consulta', cls:'consulta'}
+  ];
+  let asistencia = {};
 
+  function initAsistencia() {
+    fetch('/api/estado').then(r=>r.json()).then(data => {
+      const saved = data.attendance_today || {};
+      asistencia = {};
+      for (let i = 0; i < 8; i++) asistencia[i] = saved[i] || 'sede';
+      renderAsistencia();
+    });
+  }
+  function renderAsistencia() {
+    const grid = document.getElementById('asistGrid'); if (!grid) return;
+    grid.innerHTML = '';
+    for (let i = 0; i < 8; i++) {
+      const val = asistencia[i] || 'sede';
+      const div = document.createElement('div');
+      div.className = 'asist-item';
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = techNames[i];
+      div.appendChild(name);
+      const btns = document.createElement('div');
+      btns.className = 'btns';
+      asistOpts.forEach(o => {
+        const btn = document.createElement('button');
+        btn.className = val === o.key ? 'on ' + o.cls : '';
+        btn.textContent = o.lbl;
+        btn.onclick = function() { toggleAsist(i, o.key); };
+        btns.appendChild(btn);
+      });
+      div.appendChild(btns);
+      grid.appendChild(div);
+    }
+  }
+  function toggleAsist(i, tipo) {
+    asistencia[i] = tipo;
+    renderAsistencia();
+  }
+  function guardarAsistencia() {
+    fetch('/api/asistencia', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({registro: asistencia})})
+      .then(r=>r.json()).then(d=>{
+        if(d.success) alert('Asistencia guardada');
+        else alert('Error: ' + (d.error || 'desconocido'));
+      }).catch(e => alert('Error de red: ' + e.message));
+  }
   function render(data) {
     const grid = document.getElementById('grid'); grid.innerHTML = '';
     for (let i = 0; i < 8; i++) {
@@ -481,7 +594,7 @@ CENTRAL_PAGE = """
   function toggle(v) { fetch('/api/toggle_tecnico/' + v, {method:'POST'}).then(()=>actualizar()); }
   function resetSistema() { if (confirm('¿Reiniciar todo el sistema?')) fetch('/api/reset', {method:'POST'}).then(()=>actualizar()); }
   function actualizar() { fetch('/api/estado').then(r=>r.json()).then(render).catch(e => console.error('Error polling:', e)); }
-  actualizar(); setInterval(actualizar, 1500);
+  initAsistencia(); actualizar(); setInterval(actualizar, 1500);
 </script>
 </body>
 </html>
@@ -591,8 +704,21 @@ def estado():
             "pending": [list(q) for q in state["pending"]],
             "active": list(state["active"]),
             "attended": list(state["attended"]),
-            "last_event": state["last_event"]
+            "last_event": state["last_event"],
+            "attendance_today": state["attendance"].get(str(date.today()), {})
         })
+
+@app.route("/api/asistencia", methods=["POST"])
+def guardar_asistencia():
+    data = request.get_json()
+    if not data or "registro" not in data:
+        return jsonify({"success": False, "error": "Datos invalidos"})
+    with lock:
+        hoy = str(date.today())
+        current = state["attendance"].get(hoy, {})
+        current.update(data["registro"])
+        state["attendance"][hoy] = current
+    return jsonify({"success": True})
 
 @app.route("/api/reset", methods=["POST"])
 def reset():
