@@ -468,6 +468,8 @@ CENTRAL_PAGE = """
   .asist-item .btns button.on.consulta { border-color:#14b8a6; background:rgba(20,184,166,0.15); color:#14b8a6; }
   .asist-btn { margin:0 auto 15px; display:block; padding:10px 25px; background:#2563eb; color:#fff; border:none; border-radius:10px; font-size:1em; font-weight:bold; cursor:pointer; }
   .asist-btn:hover { background:#1d4ed8; }
+  .btn-report { background:#6366f1; color:#fff; }
+  #reporteSemanal { display:none; max-width:900px; margin:15px auto; background:#0d0d2b; border-radius:12px; padding:20px; overflow-x:auto; border:1px solid #1a3a8a; }
   @media print {
     .nav-grid, .grid, .actions, .asistencia-grid, .asist-btn, .back { display:none; }
     table { box-shadow:none; }
@@ -496,17 +498,20 @@ CENTRAL_PAGE = """
 
   <div class="actions">
     <button class="btn-print" onclick="window.print()">🖨️ Imprimir informe del día</button>
+    <button class="btn-report" onclick="generarInforme()">📊 Informe semanal</button>
     <button class="btn-reset" onclick="resetSistema()">🗑️ Reiniciar sistema</button>
   </div>
+
+  <div id="reporteSemanal"></div>
 
   <div class="section-title">Asistencia del Día</div>
   <div class="asistencia-grid" id="asistGrid"></div>
   <button class="asist-btn" onclick="guardarAsistencia()">💾 Guardar Asistencia</button>
 
   <table id="report">
-    <thead><tr><th>Técnico</th><th>Estado</th><th>Espera / Atendidos</th></tr></thead>
+    <thead><tr><th>Técnico</th><th>Estado</th><th>Asistencia</th><th>Espera / Atendidos</th></tr></thead>
     <tbody id="reportBody"></tbody>
-    <tfoot><tr><th>Total</th><th></th><th id="totalAtt">0</th></tr></tfoot>
+    <tfoot><tr><th>Total</th><th></th><th></th><th id="totalAtt">0</th></tr></tfoot>
   </table>
 
   <a href="/" class="back">← Pantalla pública</a> | <a href="/logout" class="back">Cerrar sesión</a>
@@ -566,6 +571,31 @@ CENTRAL_PAGE = """
         else alert('Error: ' + (d.error || 'desconocido'));
       }).catch(e => alert('Error de red: ' + e.message));
   }
+  function generarInforme() {
+    fetch('/api/informe_semanal').then(r=>r.json()).then(data => {
+      const dias = Object.keys(data).sort();
+      const opts = {sede:'🏢', movil:'🚐', mision:'🏛️', ausente:'❌', incapacidad:'🏥', consulta:'📋'};
+      let html = '<table style="width:100%;border-collapse:collapse;font-size:0.85em;"><thead><tr><th>Técnico</th>';
+      dias.forEach(d => {
+        const parts = d.split('-');
+        html += '<th>' + parts[2] + '/' + parts[1] + '</th>';
+      });
+      html += '</tr></thead><tbody>';
+      for (let i = 0; i < 8; i++) {
+        html += '<tr><td style="font-weight:bold;padding:6px 8px;border-bottom:1px solid #1a3a8a;color:#e2e8f0;">' + techNames[i] + '</td>';
+        dias.forEach(d => {
+          const v = (data[d] || {})[i] || '—';
+          const icono = opts[v] || '—';
+          html += '<td style="padding:6px 8px;text-align:center;border-bottom:1px solid #1a3a8a;color:#e2e8f0;">' + icono + '</td>';
+        });
+        html += '</tr>';
+      }
+      html += '</tbody></table>';
+      const el = document.getElementById('reporteSemanal');
+      el.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><h3 style="margin:0;color:#3b82f6;">📊 Informe Semanal de Asistencia</h3><button onclick="this.parentElement.parentElement.style.display=\\'none\\'" style="background:#ef4444;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;">Cerrar</button></div>' + html;
+      el.style.display = 'block';
+    });
+  }
   function render(data) {
     const grid = document.getElementById('grid'); grid.innerHTML = '';
     for (let i = 0; i < 8; i++) {
@@ -586,7 +616,10 @@ CENTRAL_PAGE = """
     for (let i = 0; i < 8; i++) {
       total += (data.attended[i] || []).length;
       const tr = document.createElement('tr');
-      tr.innerHTML = '<td>' + techNames[i] + '</td><td>' + (data.active[i] ? '🟢 Activo' : '⚪ Inactivo') + '</td><td>Espera: ' + data.pending[i].length + ' / Atend: ' + (data.attended[i] || []).length + '</td>';
+      const asIcons = {sede:'🏢', movil:'🚐', mision:'🏛️', ausente:'❌', incapacidad:'🏥', consulta:'📋'};
+      const asVal = (data.attendance_today || {})[i] || '—';
+      const asIcon = asIcons[asVal] || asVal;
+      tr.innerHTML = '<td>' + techNames[i] + '</td><td>' + (data.active[i] ? '🟢 Activo' : '⚪ Inactivo') + '</td><td>' + asIcon + '</td><td>Espera: ' + data.pending[i].length + ' / Atend: ' + (data.attended[i] || []).length + '</td>';
       rb.appendChild(tr);
     }
     document.getElementById('totalAtt').textContent = total;
@@ -719,6 +752,18 @@ def guardar_asistencia():
         current.update(data["registro"])
         state["attendance"][hoy] = current
     return jsonify({"success": True})
+
+@app.route("/api/informe_semanal")
+def informe_semanal():
+    from datetime import timedelta
+    hoy = date.today()
+    lunes = hoy - timedelta(days=hoy.weekday())
+    with lock:
+        report = {}
+        for i in range(7):
+            d = str(lunes + timedelta(days=i))
+            report[d] = state["attendance"].get(d, {})
+    return jsonify(report)
 
 @app.route("/api/reset", methods=["POST"])
 def reset():
