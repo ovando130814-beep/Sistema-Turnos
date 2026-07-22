@@ -24,7 +24,7 @@ state = {
     "next": 1,
     "pending": [[] for _ in range(8)],
     "active": [True] * 8,
-    "attended": [0] * 8,
+    "attended": [[] for _ in range(8)],
     "day": str(date.today()),
     "last_event": None,
 }
@@ -37,7 +37,7 @@ def check_day():
     if state["day"] != hoy:
         state["day"] = hoy
         state["pending"] = [[] for _ in range(8)]
-        state["attended"] = [0] * 8
+        state["attended"] = [[] for _ in range(8)]
 
 # ─── PANTALLA PUBLICA ───────────────────────────────────────────
 DISPLAY_PAGE = """
@@ -124,7 +124,7 @@ DISPLAY_PAGE = """
       const pend = data.pending[i]; const on = data.active[i];
       const div = document.createElement('div');
       div.className = 'win ' + (on ? 'active' : 'off');
-      const atend = data.attended[i] || 0;
+      const atend = (data.attended[i] || []).length;
       let html = '';
       if (pend.length > 0) {
         html = '<div class="num">' + pend[0] + '</div>';
@@ -234,7 +234,10 @@ TECH_PAGE = """
   .pend-item { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:rgba(59,130,246,0.03); border-radius:8px; margin-bottom:6px; border:1px solid rgba(59,130,246,0.08); transition:.3s; }
   .pend-item:hover { border-color:rgba(59,130,246,0.2); background:rgba(59,130,246,0.06); }
   .pend-item .pos { color:#8ab4c8; font-size:0.9em; }
-  .pend-item .num { font-size:1.6em; font-weight:bold; color:#3b82f6; text-shadow:0 0 12px rgba(59,130,246,0.25); }
+  .pend-item .num { font-size:1.6em; font-weight:bold; text-shadow:0 0 12px rgba(59,130,246,0.25); }
+  .pend-item.pending .num { color:#ef4444; }
+  .pend-item.attended .num { color:#22c55e; }
+  .pend-item.attended { opacity:0.7; }
   .empty-pend { color:#4a6a8a; text-align:center; padding:25px; font-size:1em; letter-spacing:1px; }
   .empty-pend .led { display:inline-block; width:8px; height:8px; background:#4a6a8a; border-radius:50%; margin-right:8px; vertical-align:middle; animation:blink 2s infinite; }
   @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
@@ -264,6 +267,10 @@ TECH_PAGE = """
     <div class="pend-list" id="pendList">
       <div class="empty-pend"><span class="led"></span>SIN TURNOS EN ESPERA</div>
     </div>
+    <div class="divider"></div>
+    <div class="pend-list" id="attendedList" style="max-height:160px;">
+      <div class="empty-pend" style="color:#22c55e;">SIN ATENDIDOS</div>
+    </div>
     <div id="offmsg"></div>
     <button class="btn" id="btnAtender" onclick="atender()">▶ ATENDER SIGUIENTE</button>
   </div>
@@ -272,7 +279,8 @@ TECH_PAGE = """
 <script>
   const v = __V__;
   function render(data) {
-    const pend = data.pending[v-1]; const on = data.active[v-1];
+    const pend = data.pending[v-1]; const atend = data.attended[v-1] || [];
+    const on = data.active[v-1];
     document.getElementById('count').textContent = pend.length;
     const list = document.getElementById('pendList');
     list.innerHTML = '';
@@ -281,9 +289,21 @@ TECH_PAGE = """
     } else {
       pend.forEach((n, idx) => {
         const item = document.createElement('div');
-        item.className = 'pend-item';
+        item.className = 'pend-item pending';
         item.innerHTML = '<span class="pos">#' + (idx+1) + '</span><span class="num">' + n + '</span>';
         list.appendChild(item);
+      });
+    }
+    const alist = document.getElementById('attendedList');
+    alist.innerHTML = '';
+    if (atend.length === 0) {
+      alist.innerHTML = '<div class="empty-pend" style="color:#22c55e;">SIN ATENDIDOS</div>';
+    } else {
+      atend.slice(-10).reverse().forEach((n, idx) => {
+        const item = document.createElement('div');
+        item.className = 'pend-item attended';
+        item.innerHTML = '<span class="pos">#' + (atend.length - idx) + '</span><span class="num">' + n + '</span>';
+        alist.appendChild(item);
       });
     }
     const btn = document.getElementById('btnAtender');
@@ -444,16 +464,16 @@ CENTRAL_PAGE = """
         '<div class="vnum">' + techNames[i] + '</div>' +
         '<div class="current ' + (first ? '' : 'none') + '">' + (first ? first : '---') + '</div>' +
         '<div class="pend">En espera: ' + pend.length + '</div>' +
-        '<div class="att">Atendidos: ' + data.attended[i] + '</div>' +
+        '<div class="att">Atendidos: ' + (data.attended[i] || []).length + '</div>' +
         '<button class="btn ' + (on ? '' : 'btn-off') + '" onclick="toggle(' + (i+1) + ')">' + (on ? '🟢 Activo' : '⚪ Inactivo') + '</button>';
       grid.appendChild(div);
     }
     const rb = document.getElementById('reportBody'); rb.innerHTML = '';
     let total = 0;
     for (let i = 0; i < 8; i++) {
-      total += data.attended[i];
+      total += (data.attended[i] || []).length;
       const tr = document.createElement('tr');
-      tr.innerHTML = '<td>' + techNames[i] + '</td><td>' + (data.active[i] ? '🟢 Activo' : '⚪ Inactivo') + '</td><td>Espera: ' + data.pending[i].length + ' / Atend: ' + data.attended[i] + '</td>';
+      tr.innerHTML = '<td>' + techNames[i] + '</td><td>' + (data.active[i] ? '🟢 Activo' : '⚪ Inactivo') + '</td><td>Espera: ' + data.pending[i].length + ' / Atend: ' + (data.attended[i] || []).length + '</td>';
       rb.appendChild(tr);
     }
     document.getElementById('totalAtt').textContent = total;
@@ -549,7 +569,7 @@ def atender_siguiente(ventanilla):
         if not state["pending"][ventanilla - 1]:
             return jsonify({"success": False, "error": "No hay turnos en espera"})
         num = state["pending"][ventanilla - 1].pop(0)
-        state["attended"][ventanilla - 1] += 1
+        state["attended"][ventanilla - 1].append(num)
         broadcast({"type": "llamada", "num": num, "ventanilla": ventanilla, "ts": time.time()})
     return jsonify({"success": True, "num": num, "ventanilla": ventanilla})
 
@@ -580,7 +600,7 @@ def reset():
         state["next"] = 1
         state["pending"] = [[] for _ in range(8)]
         state["active"] = [True] * 8
-        state["attended"] = [0] * 8
+        state["attended"] = [[] for _ in range(8)]
         state["last_event"] = None
     return jsonify({"success": True})
 
