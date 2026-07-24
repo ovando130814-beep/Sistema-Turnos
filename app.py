@@ -322,7 +322,8 @@ TECH_PAGE = """
       });
   }
   function render(data) {
-    const pend = data.pending[v-1]; const atend = data.attended[v-1] || [];
+    if (!data || !data.pending) return;
+    const pend = data.pending[v-1] || []; const atend = data.attended[v-1] || [];
     const on = data.active[v-1];
     document.getElementById('count').textContent = pend.length;
     const list = document.getElementById('pendList');
@@ -363,10 +364,14 @@ TECH_PAGE = """
     }
   }
   function atender() {
-    fetch('/api/atender_siguiente/' + v, {method:'POST'}).then(r=>r.json()).then(d=>{
-      if (!d.success && d.error) alert(d.error);
-      actualizar();
-    });
+    const btn = document.getElementById('btnAtender');
+    btn.disabled = true;
+    btn.textContent = '\u23f3 ATENDIENDO...';
+    fetch('/api/atender_siguiente/' + v, {method:'POST'})
+      .then(r=>r.json()).then(d=>{
+        if (!d.success && d.error) alert(d.error);
+        actualizar();
+      }).catch(e => { btn.disabled = false; btn.textContent = '\u25b6 ATENDER SIGUIENTE'; console.error(e); });
   }
   function actualizar() { fetch('/api/estado').then(r=>r.json()).then(render); }
   initAsist(); actualizar(); setInterval(actualizar, 1500);
@@ -688,11 +693,16 @@ def tech_view(v):
     if not 1 <= v <= 8:
         return redirect("/tecnico")
     name = techNames[v-1]
-    return TECH_PAGE.replace("__V__", str(v)).replace("__NAME__", name)
+    # Añadir contador pendiente en bar-title
+    page_title = TECH_PAGE.replace("__V__", str(v)).replace("__NAME__", name)
+    # Reemplazar el título por defecto del técnico con el nombre del técnico y contador
+    page_title = page_title.replace('<h1>Acceso Técnico</h1>', f'<h1>🎫 Tecnico {name} - Panel de Control</h1>')
+    return page_title
 
 @app.route("/api/tomar_turno", methods=["POST"])
 def tomar_turno():
     with lock:
+        check_day()
         num = state["next"]
         state["next"] += 1
         candidates = [(i, len(state["pending"][i])) for i in range(8) if state["active"][i]]
@@ -723,6 +733,7 @@ def toggle_tecnico(ventanilla):
     if not 1 <= ventanilla <= 8:
         return jsonify({"success": False, "error": "Tecnico invalido"})
     with lock:
+        check_day()
         state["active"][ventanilla - 1] = not state["active"][ventanilla - 1]
         if not state["active"][ventanilla - 1]:
             state["pending"][ventanilla - 1] = []
@@ -731,6 +742,7 @@ def toggle_tecnico(ventanilla):
 @app.route("/api/estado")
 def estado():
     with lock:
+        check_day()
         return jsonify({
             "next": state["next"],
             "pending": [list(q) for q in state["pending"]],
@@ -767,6 +779,7 @@ def informe_semanal():
 @app.route("/api/reset", methods=["POST"])
 def reset():
     with lock:
+        check_day()
         state["next"] = 1
         state["pending"] = [[] for _ in range(8)]
         state["active"] = [True] * 8
