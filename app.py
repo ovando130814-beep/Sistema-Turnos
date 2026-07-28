@@ -343,7 +343,6 @@ TECH_PAGE = """
         list.innerHTML = '<div class="empty-pend"><span class="led"></span>SIN TURNOS EN ESPERA</div>';
       } else {
         const currentNum = data.current ? data.current[v-1] : null;
-      const currentNum = data.current ? data.current[v-1] : null;
       const currentStart = data.current_start ? data.current_start[v-1] : null;
       if (currentStart) {
         const elapsed = Math.floor((Date.now() / 1000) - currentStart);
