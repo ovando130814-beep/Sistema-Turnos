@@ -27,7 +27,7 @@ state = {
     "attended": [[] for _ in range(8)],
     "day": str(date.today()),
     "last_event": None,
-    "attendance": {},
+    "attendance": {}, "current": [None] * 8,
 }
 
 def broadcast(event):
@@ -39,6 +39,7 @@ def check_day():
         state["day"] = hoy
         state["pending"] = [[] for _ in range(8)]
         state["attended"] = [[] for _ in range(8)]
+        state["current"] = [None] * 8
 
 # ─── PANTALLA PUBLICA ───────────────────────────────────────────
 DISPLAY_PAGE = """
@@ -236,6 +237,7 @@ TECH_PAGE = """
   .pend-item:hover { border-color:rgba(59,130,246,0.2); background:rgba(59,130,246,0.06); }
   .pend-item .pos { color:#8ab4c8; font-size:0.9em; }
   .pend-item .num { font-size:1.6em; font-weight:bold; text-shadow:0 0 12px rgba(59,130,246,0.25); }
+  .pend-item.active .num { color:#fbbf24; text-shadow:0 0 20px rgba(251,191,36,0.4); }
   .pend-item.pending .num { color:#ef4444; }
   .pend-item.attended .num { color:#22c55e; }
   .pend-item.attended { opacity:0.7; }
@@ -339,9 +341,10 @@ TECH_PAGE = """
       if (pend.length === 0) {
         list.innerHTML = '<div class="empty-pend"><span class="led"></span>SIN TURNOS EN ESPERA</div>';
       } else {
-        pend.forEach((n, idx) => {
+        const currentNum = data.current ? data.current[v-1] : null;
+      pend.forEach((n, idx) => {
           const item = document.createElement('div');
-          item.className = 'pend-item pending';
+          item.className = n === currentNum ? 'pend-item active' : 'pend-item pending';
           item.innerHTML = '<span class="pos">#' + (idx+1) + '</span><span class="num">' + n + '</span>';
           list.appendChild(item);
         });
@@ -739,8 +742,11 @@ def atender_siguiente(ventanilla):
             return jsonify({"success": False, "error": "Tecnico inactivo"})
         if not state["pending"][ventanilla - 1]:
             return jsonify({"success": False, "error": "No hay turnos en espera"})
+        prev = state["current"][ventanilla - 1]
+        if prev is not None:
+            state["attended"][ventanilla - 1].append(prev)
         num = state["pending"][ventanilla - 1].pop(0)
-        state["attended"][ventanilla - 1].append(num)
+        state["current"][ventanilla - 1] = num
         broadcast({"type": "llamada", "num": num, "ventanilla": ventanilla, "ts": time.time()})
     return jsonify({"success": True, "num": num, "ventanilla": ventanilla})
 
@@ -753,6 +759,7 @@ def toggle_tecnico(ventanilla):
         state["active"][ventanilla - 1] = not state["active"][ventanilla - 1]
         if not state["active"][ventanilla - 1]:
             state["pending"][ventanilla - 1] = []
+            state["current"][ventanilla - 1] = None
     return jsonify({"success": True, "active": state["active"][ventanilla - 1]})
 
 @app.route("/api/estado")
@@ -765,7 +772,7 @@ def estado():
             "active": list(state["active"]),
             "attended": list(state["attended"]),
             "last_event": state["last_event"],
-            "attendance_today": state["attendance"].get(str(date.today()), {})
+            "attendance_today": state["attendance"].get(str(date.today()), {}), "current": list(state["current"])
         })
 
 @app.route("/api/asistencia", methods=["POST"])
@@ -800,6 +807,8 @@ def reset():
         state["pending"] = [[] for _ in range(8)]
         state["active"] = [True] * 8
         state["attended"] = [[] for _ in range(8)]
+        state["current"] = [None] * 8
+        state["current"] = [None] * 8
         state["last_event"] = None
     return jsonify({"success": True})
 
