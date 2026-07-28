@@ -311,7 +311,11 @@ TECH_PAGE = """
     if (!container) return;
     let html = '<div class="lbl">📍 MI ASISTENCIA:</div>';
     asistOpts.forEach(o => {
-      html += '<button class="' + (val === o.key ? 'on ' + o.cls : '') + '" onclick="setAsist(\'' + o.key + '\')">' + o.lbl + '</button>';
+      const btn = document.createElement('button');
+      btn.className = val === o.key ? 'on ' + o.cls : '';
+      btn.textContent = o.lbl;
+      btn.onclick = function() { setAsist(o.key); };
+      container.appendChild(btn);
     });
     container.innerHTML = html;
   }
