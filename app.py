@@ -304,10 +304,11 @@ TECH_PAGE = """
     fetch('/api/estado').then(r=>r.json()).then(data => {
       const val = (data.attendance_today || {})[v-1] || 'sede';
       renderAsist(val);
-    });
+    }).catch(e => console.error('initAsist error:', e));
   }
   function renderAsist(val) {
     const container = document.getElementById('asistTech');
+    if (!container) return;
     let html = '<div class="lbl">📍 MI ASISTENCIA:</div>';
     asistOpts.forEach(o => {
       html += '<button class="' + (val === o.key ? 'on ' + o.cls : '') + '" onclick="setAsist(\'' + o.key + '\')">' + o.lbl + '</button>';
@@ -319,62 +320,73 @@ TECH_PAGE = """
     fetch('/api/asistencia', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({registro: obj})})
       .then(r=>r.json()).then(d => {
         if (d.success) { renderAsist(tipo); }
-      });
+      }).catch(e => console.error('setAsist error:', e));
   }
   function render(data) {
-    if (!data || !data.pending) return;
-    const pend = data.pending[v-1] || []; const atend = data.attended[v-1] || [];
+    if (!data || !data.pending || !data.active) { console.warn('render: invalid data', data); return; }
+    const pend = data.pending[v-1] || [];
+    const atend = data.attended[v-1] || [];
     const on = data.active[v-1];
-    document.getElementById('count').textContent = pend.length;
+    const countEl = document.getElementById('count');
+    if (countEl) countEl.textContent = pend.length;
     const list = document.getElementById('pendList');
-    list.innerHTML = '';
-    if (pend.length === 0) {
-      list.innerHTML = '<div class="empty-pend"><span class="led"></span>SIN TURNOS EN ESPERA</div>';
-    } else {
-      pend.forEach((n, idx) => {
-        const item = document.createElement('div');
-        item.className = 'pend-item pending';
-        item.innerHTML = '<span class="pos">#' + (idx+1) + '</span><span class="num">' + n + '</span>';
-        list.appendChild(item);
-      });
+    if (list) {
+      list.innerHTML = '';
+      if (pend.length === 0) {
+        list.innerHTML = '<div class="empty-pend"><span class="led"></span>SIN TURNOS EN ESPERA</div>';
+      } else {
+        pend.forEach((n, idx) => {
+          const item = document.createElement('div');
+          item.className = 'pend-item pending';
+          item.innerHTML = '<span class="pos">#' + (idx+1) + '</span><span class="num">' + n + '</span>';
+          list.appendChild(item);
+        });
+      }
     }
     const alist = document.getElementById('attendedList');
-    alist.innerHTML = '';
-    if (atend.length === 0) {
-      alist.innerHTML = '<div class="empty-pend" style="color:#22c55e;">SIN ATENDIDOS</div>';
-    } else {
-      atend.slice(-10).reverse().forEach((n, idx) => {
-        const item = document.createElement('div');
-        item.className = 'pend-item attended';
-        item.innerHTML = '<span class="pos">#' + (atend.length - idx) + '</span><span class="num">' + n + '</span>';
-        alist.appendChild(item);
-      });
+    if (alist) {
+      alist.innerHTML = '';
+      if (atend.length === 0) {
+        alist.innerHTML = '<div class="empty-pend" style="color:#22c55e;">SIN ATENDIDOS</div>';
+      } else {
+        atend.slice(-10).reverse().forEach((n, idx) => {
+          const item = document.createElement('div');
+          item.className = 'pend-item attended';
+          item.innerHTML = '<span class="pos">#' + (atend.length - idx) + '</span><span class="num">' + n + '</span>';
+          alist.appendChild(item);
+        });
+      }
     }
     const btn = document.getElementById('btnAtender');
     const off = document.getElementById('offmsg');
-    if (!on) {
-      btn.disabled = true; btn.textContent = '⚙ INACTIVO';
-      btn.className = 'btn-off';
-      off.innerHTML = '<div class="off-msg">! SISTEMA INACTIVO - Contacte al administrador !</div>';
-    } else {
-      btn.disabled = (pend.length === 0);
-      btn.textContent = pend.length > 0 ? '▶ ATENDER SIGUIENTE' : '⏻ ESPERANDO TURNOS';
-      btn.className = 'btn';
-      off.innerHTML = '';
+    if (btn) {
+      if (!on) {
+        btn.disabled = true; btn.textContent = '⚙ INACTIVO';
+        btn.className = 'btn-off';
+        if (off) off.innerHTML = '<div class="off-msg">! SISTEMA INACTIVO - Contacte al administrador !</div>';
+      } else {
+        btn.disabled = (pend.length === 0);
+        btn.textContent = pend.length > 0 ? '▶ ATENDER SIGUIENTE' : '⏻ ESPERANDO TURNOS';
+        btn.className = 'btn';
+        if (off) off.innerHTML = '';
+      }
     }
   }
   function atender() {
     const btn = document.getElementById('btnAtender');
+    if (!btn) return;
     btn.disabled = true;
-    btn.textContent = '\u23f3 ATENDIENDO...';
+    btn.textContent = '⏳ ATENDIENDO...';
     fetch('/api/atender_siguiente/' + v, {method:'POST'})
       .then(r=>r.json()).then(d=>{
         if (!d.success && d.error) alert(d.error);
         actualizar();
-      }).catch(e => { btn.disabled = false; btn.textContent = '\u25b6 ATENDER SIGUIENTE'; console.error(e); });
+      }).catch(e => { console.error('atender error:', e); btn.disabled = false; btn.textContent = '▶ ATENDER SIGUIENTE'; });
   }
-  function actualizar() { fetch('/api/estado').then(r=>r.json()).then(render); }
-  initAsist(); actualizar(); setInterval(actualizar, 1500);
+  function actualizar() {
+    fetch('/api/estado').then(r=>r.json()).then(render).catch(e => console.error('actualizar error:', e));
+  }
+  initAsist(); actualizar(); setInterval(actualizar, 3000);
 </script>
 </body>
 </html>
