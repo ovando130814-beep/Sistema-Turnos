@@ -27,7 +27,7 @@ state = {
     "attended": [[] for _ in range(8)],
     "day": str(date.today()),
     "last_event": None,
-    "attendance": {}, "current": [None] * 8,
+    "attendance": {}, "current": [None] * 8, "current_start": [None] * 8,
 }
 
 def broadcast(event):
@@ -238,6 +238,7 @@ TECH_PAGE = """
   .pend-item .pos { color:#8ab4c8; font-size:0.9em; }
   .pend-item .num { font-size:1.6em; font-weight:bold; text-shadow:0 0 12px rgba(59,130,246,0.25); }
   .pend-item.active .num { color:#fbbf24; text-shadow:0 0 20px rgba(251,191,36,0.4); }
+  .pend-item.active { background:rgba(251,191,36,0.05); border-color:rgba(251,191,36,0.3); }
   .pend-item.pending .num { color:#ef4444; }
   .pend-item.attended .num { color:#22c55e; }
   .pend-item.attended { opacity:0.7; }
@@ -272,7 +273,7 @@ TECH_PAGE = """
     </div>
     <div class="divider"></div>
     <div class="status-bar">
-      <span class="label">👤 Tienes <strong id="count">0</strong> usuarios en espera</span>
+      <span class="label">👤 Tienes <strong id="count">0</strong> usuarios en espera</span><span class="label" style="margin-left:10px;">⏱️ En atención: <strong id="timer">0:00</strong></span>
     </div>
     <div class="divider"></div>
     <div class="asist-tech" id="asistTech">
@@ -342,6 +343,15 @@ TECH_PAGE = """
         list.innerHTML = '<div class="empty-pend"><span class="led"></span>SIN TURNOS EN ESPERA</div>';
       } else {
         const currentNum = data.current ? data.current[v-1] : null;
+      const currentNum = data.current ? data.current[v-1] : null;
+      const currentStart = data.current_start ? data.current_start[v-1] : null;
+      if (currentStart) {
+        const elapsed = Math.floor((Date.now() / 1000) - currentStart);
+        const mins = Math.floor(elapsed / 60);
+        const secs = elapsed % 60;
+        const timerEl = document.getElementById('timer');
+        if (timerEl) timerEl.textContent = mins + ':' + (secs < 10 ? '0' : '') + secs;
+      }
       pend.forEach((n, idx) => {
           const item = document.createElement('div');
           item.className = n === currentNum ? 'pend-item active' : 'pend-item pending';
@@ -465,6 +475,7 @@ CENTRAL_PAGE = """
   .card .current.none { color:#4a6a8a; }
   .card .pend { color:#60a5fa; font-weight:bold; font-size:0.9em; }
   .card .att { color:#3b82f6; font-weight:bold; }
+  .card .timer { color:#fbbf24; font-weight:bold; font-size:0.85em; margin-top:2px; }
   .btn { width:100%; padding:10px; background:#2563eb; color:#fff; border:none; border-radius:10px; font-size:1em; cursor:pointer; margin-top:6px; }
   .btn-off { background:#1a3a8a; }
   .actions { text-align:center; margin-bottom:20px; }
@@ -619,6 +630,11 @@ CENTRAL_PAGE = """
       el.style.display = 'block';
     });
   }
+  function formatTime(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
   function render(data) {
     const grid = document.getElementById('grid'); grid.innerHTML = '';
     for (let i = 0; i < 8; i++) {
@@ -747,6 +763,7 @@ def atender_siguiente(ventanilla):
             state["attended"][ventanilla - 1].append(prev)
         num = state["pending"][ventanilla - 1].pop(0)
         state["current"][ventanilla - 1] = num
+        state["current_start"][ventanilla - 1] = time.time()
         broadcast({"type": "llamada", "num": num, "ventanilla": ventanilla, "ts": time.time()})
     return jsonify({"success": True, "num": num, "ventanilla": ventanilla})
 
@@ -760,6 +777,7 @@ def toggle_tecnico(ventanilla):
         if not state["active"][ventanilla - 1]:
             state["pending"][ventanilla - 1] = []
             state["current"][ventanilla - 1] = None
+            state["current_start"][ventanilla - 1] = None
     return jsonify({"success": True, "active": state["active"][ventanilla - 1]})
 
 @app.route("/api/estado")
@@ -772,7 +790,7 @@ def estado():
             "active": list(state["active"]),
             "attended": list(state["attended"]),
             "last_event": state["last_event"],
-            "attendance_today": state["attendance"].get(str(date.today()), {}), "current": list(state["current"])
+            "attendance_today": state["attendance"].get(str(date.today()), {}), "current": list(state["current"]), "current_start": list(state["current_start"])
         })
 
 @app.route("/api/asistencia", methods=["POST"])
@@ -809,6 +827,7 @@ def reset():
         state["attended"] = [[] for _ in range(8)]
         state["current"] = [None] * 8
         state["current"] = [None] * 8
+        state["current_start"] = [None] * 8
         state["last_event"] = None
     return jsonify({"success": True})
 
