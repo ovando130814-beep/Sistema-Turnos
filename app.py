@@ -27,7 +27,7 @@ state = {
     "attended": [[] for _ in range(8)],
     "day": str(date.today()),
     "last_event": None,
-    "attendance": {}, "current": [None] * 8, "current_start": [None] * 8,
+    "attendance": {}, "current": [None] * 8, "current_start": [None] * 8, "pending_start": [[] for _ in range(8)],
 }
 
 def broadcast(event):
@@ -456,6 +456,7 @@ CENTRAL_PAGE = """
   .card .pend { color:#60a5fa; font-weight:bold; font-size:0.9em; }
   .card .att { color:#3b82f6; font-weight:bold; }
   .card .timer { color:#fbbf24; font-weight:bold; font-size:0.85em; margin-top:2px; }
+  .card .wait { color:#ef4444; font-weight:bold; font-size:0.85em; margin-top:2px; }
   .btn { width:100%; padding:10px; background:#2563eb; color:#fff; border:none; border-radius:10px; font-size:1em; cursor:pointer; margin-top:6px; }
   .btn-off { background:#1a3a8a; }
   .actions { text-align:center; margin-bottom:20px; }
@@ -870,6 +871,7 @@ CENTRAL_PAGE = """
   .card .pend { color:#60a5fa; font-weight:bold; font-size:0.9em; }
   .card .att { color:#3b82f6; font-weight:bold; }
   .card .timer { color:#fbbf24; font-weight:bold; font-size:0.85em; margin-top:2px; }
+  .card .wait { color:#ef4444; font-weight:bold; font-size:0.85em; margin-top:2px; }
   .btn { width:100%; padding:10px; background:#2563eb; color:#fff; border:none; border-radius:10px; font-size:1em; cursor:pointer; margin-top:6px; }
   .btn-off { background:#1a3a8a; }
   .actions { text-align:center; margin-bottom:20px; }
@@ -1139,6 +1141,7 @@ def tomar_turno():
             return jsonify({"success": False, "error": "No hay tecnicos activos"})
         ventanilla = min(candidates, key=lambda x: x[1])[0]
         state["pending"][ventanilla].append(num)
+        state["pending_start"][ventanilla].append(time.time())
         broadcast({"type": "nuevo", "num": num, "ventanilla": ventanilla + 1, "ts": time.time()})
     return jsonify({"success": True, "num": num, "ventanilla": ventanilla + 1})
 
@@ -1156,6 +1159,7 @@ def atender_siguiente(ventanilla):
         if prev is not None:
             state["attended"][ventanilla - 1].append(prev)
         num = state["pending"][ventanilla - 1].pop(0)
+        state["pending_start"][ventanilla - 1].pop(0)
         state["current"][ventanilla - 1] = num
         state["current_start"][ventanilla - 1] = time.time()
         broadcast({"type": "llamada", "num": num, "ventanilla": ventanilla, "ts": time.time()})
@@ -1170,6 +1174,7 @@ def toggle_tecnico(ventanilla):
         state["active"][ventanilla - 1] = not state["active"][ventanilla - 1]
         if not state["active"][ventanilla - 1]:
             state["pending"][ventanilla - 1] = []
+            state["pending_start"][ventanilla - 1] = []
             state["current"][ventanilla - 1] = None
             state["current_start"][ventanilla - 1] = None
     return jsonify({"success": True, "active": state["active"][ventanilla - 1]})
@@ -1184,7 +1189,7 @@ def estado():
             "active": list(state["active"]),
             "attended": list(state["attended"]),
             "last_event": state["last_event"],
-            "attendance_today": state["attendance"].get(str(date.today()), {}), "current": list(state["current"]), "current_start": list(state["current_start"])
+            "attendance_today": state["attendance"].get(str(date.today()), {}), "current": list(state["current"]), "current_start": list(state["current_start"]), "pending_start": [list(q) for q in state["pending_start"]]
         })
 
 @app.route("/api/asistencia", methods=["POST"])
@@ -1222,6 +1227,7 @@ def reset():
         state["current"] = [None] * 8
         state["current"] = [None] * 8
         state["current_start"] = [None] * 8
+        state["pending_start"] = [[] for _ in range(8)]
         state["last_event"] = None
     return jsonify({"success": True})
 
