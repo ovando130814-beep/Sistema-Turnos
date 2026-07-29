@@ -692,14 +692,14 @@ TECH_PAGE = """
       <span class="label">👤 Tienes <strong id="count">0</strong> usuarios en espera</span><span class="label" style="margin-left:10px;">⏱️ En atención: <strong id="timer">0:00</strong></span>
     </div>
     <div class="divider"></div>
-    <div class="section-header">🟡 EN ATENCIÓN</div>
-    <div class="pend-list" id="currentList" style="max-height:120px;">
-      <div class="empty-pend">NINGÚN TURNO EN ATENCIÓN</div>
-    </div>
-    <div class="divider"></div>
     <div class="section-header">🔴 EN ESPERA</div>
     <div class="pend-list" id="pendList">
       <div class="empty-pend"><span class="led"></span>SIN TURNOS EN ESPERA</div>
+    </div>
+    <div class="divider"></div>
+    <div class="section-header">🟡 EN ATENCIÓN</div>
+    <div class="pend-list" id="currentList" style="max-height:120px;">
+      <div class="empty-pend">NINGÚN TURNO EN ATENCIÓN</div>
     </div>
     <div class="divider"></div>
     <div class="section-header">🟢 ATENDIDOS</div>
