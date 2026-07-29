@@ -1,0 +1,116 @@
+
+  const techNames = ['Mauricio Amaya', 'Julio Castillo', 'Jorge Hernandez', 'Yesica Bonilla', 'Alba Zelaya', 'Manuel Herrera', 'William Espiñal', 'Rene Quintanilla'];
+  const asistOpts = [
+    {key:'sede', lbl:'🏢 Sede', cls:'sede'},
+    {key:'movil', lbl:'🚐 Móvil', cls:'movil'},
+    {key:'mision', lbl:'🏛️ Misión Oficial', cls:'mision'},
+    {key:'ausente', lbl:'❌ Ausente', cls:'ausente'},
+    {key:'incapacidad', lbl:'🏥 Incapacidad', cls:'incapacidad'},
+    {key:'consulta', lbl:'📋 Consulta', cls:'consulta'}
+  ];
+  let asistencia = {};
+
+  function initAsistencia() {
+    fetch('/api/estado').then(r=>r.json()).then(data => {
+      const saved = data.attendance_today || {};
+      asistencia = {};
+      for (let i = 0; i < 8; i++) asistencia[i] = saved[i] || 'sede';
+      renderAsistencia();
+    });
+  }
+  function renderAsistencia() {
+    const grid = document.getElementById('asistGrid'); if (!grid) return;
+    grid.innerHTML = '';
+    for (let i = 0; i < 8; i++) {
+      const val = asistencia[i] || 'sede';
+      const div = document.createElement('div');
+      div.className = 'asist-item';
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = techNames[i];
+      div.appendChild(name);
+      const btns = document.createElement('div');
+      btns.className = 'btns';
+      asistOpts.forEach(o => {
+        const btn = document.createElement('button');
+        btn.className = val === o.key ? 'on ' + o.cls : '';
+        btn.textContent = o.lbl;
+        btn.onclick = function() { toggleAsist(i, o.key); };
+        btns.appendChild(btn);
+      });
+      div.appendChild(btns);
+      grid.appendChild(div);
+    }
+  }
+  function toggleAsist(i, tipo) {
+    asistencia[i] = tipo;
+    renderAsistencia();
+  }
+  function guardarAsistencia() {
+    fetch('/api/asistencia', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({registro: asistencia})})
+      .then(r=>r.json()).then(d=>{
+        if(d.success) alert('Asistencia guardada');
+        else alert('Error: ' + (d.error || 'desconocido'));
+      }).catch(e => alert('Error de red: ' + e.message));
+  }
+  function generarInforme() {
+    fetch('/api/informe_semanal').then(r=>r.json()).then(data => {
+      const dias = Object.keys(data).sort();
+      const opts = {sede:'🏢 Sede', movil:'🚐 Móvil', mision:'🏛️ M.Oficial', ausente:'❌ Ausente', incapacidad:'🏥 Incapacidad', consulta:'📋 Consulta'};
+      let html = '<table style="width:100%;border-collapse:collapse;font-size:0.85em;"><thead><tr><th>Técnico</th>';
+      dias.forEach(d => {
+        const parts = d.split('-');
+        html += '<th>' + parts[2] + '/' + parts[1] + '</th>';
+      });
+      html += '</tr></thead><tbody>';
+      for (let i = 0; i < 8; i++) {
+        html += '<tr><td style="font-weight:bold;padding:6px 8px;border-bottom:1px solid #1a3a8a;color:#e2e8f0;">' + techNames[i] + '</td>';
+        dias.forEach(d => {
+          const v = (data[d] || {})[i] || '—';
+          html += '<td style="padding:6px 8px;text-align:center;border-bottom:1px solid #1a3a8a;color:#e2e8f0;white-space:nowrap;">' + (opts[v] || '—') + '</td>';
+        });
+        html += '</tr>';
+      }
+      html += '</tbody></table>';
+      const el = document.getElementById('reporteSemanal');
+      el.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><h3 style="margin:0;color:#3b82f6;">📊 Informe Semanal de Asistencia</h3><button onclick="this.parentElement.parentElement.style.display=\'none\'" style="background:#ef4444;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;">Cerrar</button></div>' + html;
+      el.style.display = 'block';
+    });
+  }
+  function formatTime(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+  function render(data) {
+    const grid = document.getElementById('grid'); grid.innerHTML = '';
+    for (let i = 0; i < 8; i++) {
+      const pend = data.pending[i]; const on = data.active[i];
+      const first = pend.length > 0 ? pend[0] : null;
+      const div = document.createElement('div');
+      div.className = 'card' + (on ? '' : ' off');
+      div.innerHTML =
+        '<div class="vnum">' + techNames[i] + '</div>' +
+        '<div class="current ' + (first ? '' : 'none') + '">' + (first ? first : '---') + '</div>' +
+        '<div class="pend">En espera: ' + pend.length + '</div>' +
+        '<div class="att">Atendidos: ' + (data.attended[i] || []).length + '</div>' +
+        '<button class="btn ' + (on ? '' : 'btn-off') + '" onclick="toggle(' + (i+1) + ')">' + (on ? '🟢 Activo' : '⚪ Inactivo') + '</button>';
+      grid.appendChild(div);
+    }
+    const rb = document.getElementById('reportBody'); rb.innerHTML = '';
+    let total = 0;
+    for (let i = 0; i < 8; i++) {
+      total += (data.attended[i] || []).length;
+      const tr = document.createElement('tr');
+      const asLabels = {sede:'🏢 Sede', movil:'🚐 Móvil', mision:'🏛️ Misión Oficial', ausente:'❌ Ausente', incapacidad:'🏥 Incapacidad', consulta:'📋 Consulta'};
+      const asVal = (data.attendance_today || {})[i] || '—';
+      const asIcon = asLabels[asVal] || '—';
+      tr.innerHTML = '<td>' + techNames[i] + '</td><td>' + (data.active[i] ? '🟢 Activo' : '⚪ Inactivo') + '</td><td>' + asIcon + '</td><td>Espera: ' + data.pending[i].length + ' / Atend: ' + (data.attended[i] || []).length + '</td>';
+      rb.appendChild(tr);
+    }
+    document.getElementById('totalAtt').textContent = total;
+  }
+  function toggle(v) { fetch('/api/toggle_tecnico/' + v, {method:'POST'}).then(()=>actualizar()); }
+  function resetSistema() { if (confirm('¿Reiniciar todo el sistema?')) fetch('/api/reset', {method:'POST'}).then(()=>actualizar()); }
+  function actualizar() { fetch('/api/estado').then(r=>r.json()).then(render).catch(e => console.error('Error polling:', e)); }
+  actualizar(); setInterval(actualizar, 1500);

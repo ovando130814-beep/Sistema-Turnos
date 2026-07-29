@@ -1043,6 +1043,8 @@ CENTRAL_PAGE = """
         '<div class="current ' + (first ? '' : 'none') + '">' + (first ? first : '---') + '</div>' +
         '<div class="pend">En espera: ' + pend.length + '</div>' +
         '<div class="att">Atendidos: ' + (data.attended[i] || []).length + '</div>' +
+        (data.current && data.current[i] ? '<div class="timer">⏱️ Atendiendo: ' + formatTime(data.current_start && data.current_start[i] ? Math.floor((Date.now()/1000) - data.current_start[i]) : 0) + '</div>' : '') +
+        (pend.length > 0 ? '<div class="wait">⏳ Espera: ' + formatTime(data.pending_start && data.pending_start[i] ? Math.floor((Date.now()/1000) - data.pending_start[i][0]) : 0) + '</div>' : '') +
         '<button class="btn ' + (on ? '' : 'btn-off') + '" onclick="toggle(' + (i+1) + ')">' + (on ? '🟢 Activo' : '⚪ Inactivo') + '</button>';
       grid.appendChild(div);
     }
