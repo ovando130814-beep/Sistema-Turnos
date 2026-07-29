@@ -253,6 +253,7 @@ TECH_PAGE = """
   .back { display:block; text-align:center; margin-top:18px; color:#4a6a8a; text-decoration:none; font-size:1.2em; letter-spacing:1px; transition:.3s; }
   .back:hover { color:#b0c4d8; }
   .divider { height:1px; background:linear-gradient(90deg,transparent,rgba(59,130,246,0.15),transparent); margin:10px 0; }
+  .section-header { color:#60a5fa; font-size:1.1em; font-weight:bold; letter-spacing:1px; margin:8px 0 4px 0; text-align:left; padding-left:4px; }
   .asist-tech { margin:8px 0; display:flex; align-items:center; justify-content:center; gap:6px; flex-wrap:wrap; }
   .asist-tech .lbl { color:#4a6a8a; font-size:1.2em; letter-spacing:1px; width:100%; text-align:center; margin-bottom:4px; }
   .asist-tech button { padding:6px 12px; border-radius:6px; border:2px solid #1a3a8a; background:#050510; color:#4a6a8a; font-family:inherit; font-size:1.1em; cursor:pointer; transition:.3s; letter-spacing:1px; }
@@ -276,15 +277,17 @@ TECH_PAGE = """
       <span class="label">👤 Tienes <strong id="count">0</strong> usuarios en espera</span><span class="label" style="margin-left:10px;">⏱️ En atención: <strong id="timer">0:00</strong></span>
     </div>
     <div class="divider"></div>
-    <div class="asist-tech" id="asistTech">
-      <div class="lbl">📍 MI ASISTENCIA:</div>
+    <div class="section-header">🟡 EN ATENCIÓN</div>
+    <div class="pend-list" id="currentList" style="max-height:120px;">
+      <div class="empty-pend">NINGÚN TURNO EN ATENCIÓN</div>
     </div>
     <div class="divider"></div>
-
+    <div class="section-header">🔴 EN ESPERA</div>
     <div class="pend-list" id="pendList">
       <div class="empty-pend"><span class="led"></span>SIN TURNOS EN ESPERA</div>
     </div>
     <div class="divider"></div>
+    <div class="section-header">🟢 ATENDIDOS</div>
     <div class="pend-list" id="attendedList" style="max-height:160px;">
       <div class="empty-pend" style="color:#22c55e;">SIN ATENDIDOS</div>
     </div>
@@ -295,40 +298,6 @@ TECH_PAGE = """
 
 <script>
   const v = __V__;
-  const asistOpts = [
-    {key:'sede', lbl:'🏢 Sede', cls:'sede'},
-    {key:'movil', lbl:'🚐 Móvil', cls:'movil'},
-    {key:'mision', lbl:'🏛️ M. Oficial', cls:'mision'},
-    {key:'ausente', lbl:'❌ Ausente', cls:'ausente'},
-    {key:'incapacidad', lbl:'🏥 Incapacidad', cls:'incapacidad'},
-    {key:'consulta', lbl:'📋 Consulta', cls:'consulta'}
-  ];
-  function initAsist() {
-    fetch('/api/estado').then(r=>r.json()).then(data => {
-      const val = (data.attendance_today || {})[v-1] || 'sede';
-      renderAsist(val);
-    }).catch(e => console.error('initAsist error:', e));
-  }
-  function renderAsist(val) {
-    const container = document.getElementById('asistTech');
-    if (!container) return;
-    let html = '<div class="lbl">📍 MI ASISTENCIA:</div>';
-    asistOpts.forEach(o => {
-      const btn = document.createElement('button');
-      btn.className = val === o.key ? 'on ' + o.cls : '';
-      btn.textContent = o.lbl;
-      btn.onclick = function() { setAsist(o.key); };
-      container.appendChild(btn);
-    });
-    container.innerHTML = html;
-  }
-  function setAsist(tipo) {
-    const obj = {}; obj[v-1] = tipo;
-    fetch('/api/asistencia', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({registro: obj})})
-      .then(r=>r.json()).then(d => {
-        if (d.success) { renderAsist(tipo); }
-      }).catch(e => console.error('setAsist error:', e));
-  }
   function render(data) {
     if (!data || !data.pending || !data.active) { console.warn('render: invalid data', data); return; }
     const pend = data.pending[v-1] || [];
@@ -350,6 +319,18 @@ TECH_PAGE = """
         const secs = elapsed % 60;
         const timerEl = document.getElementById('timer');
         if (timerEl) timerEl.textContent = mins + ':' + (secs < 10 ? '0' : '') + secs;
+      }
+      const currentList = document.getElementById('currentList');
+      if (currentList) {
+        currentList.innerHTML = '';
+        if (currentNum !== null && currentNum !== undefined) {
+          const cItem = document.createElement('div');
+          cItem.className = 'pend-item active';
+          cItem.innerHTML = '<span class="pos">EN ATENCIÓN</span><span class="num">' + currentNum + '</span>';
+          currentList.appendChild(cItem);
+        } else {
+          currentList.innerHTML = '<div class="empty-pend">NINGÚN TURNO EN ATENCIÓN</div>';
+        }
       }
       pend.forEach((n, idx) => {
           const item = document.createElement('div');
@@ -402,7 +383,421 @@ TECH_PAGE = """
   function actualizar() {
     fetch('/api/estado').then(r=>r.json()).then(render).catch(e => console.error('actualizar error:', e));
   }
-  initAsist(); actualizar(); setInterval(actualizar, 3000);
+  actualizar(); setInterval(actualizar, 3000);
+</script>
+</body>
+</html>
+"""
+
+LOGIN_PAGE = """
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acceso - Turnos</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI',sans-serif; background:#0a0a0a; color:#fff; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+  .card { background:#0d0d2b; border-radius:20px; padding:40px; text-align:center; width:360px; border:2px solid #1a3a8a; }
+  .card .logo { height:60px; margin-bottom:15px; }
+  .card h1 { color:#3b82f6; margin-bottom:20px; font-size:1.3em; }
+  .card input { width:100%; padding:14px; border-radius:10px; border:2px solid #1a3a8a; background:#0a0a0a; color:#fff; font-size:1.1em; text-align:center; margin-bottom:15px; }
+  .card input:focus { outline:none; border-color:#3b82f6; }
+  .card button { width:100%; padding:14px; background:#3b82f6; color:#fff; border:none; border-radius:10px; font-size:1.2em; font-weight:bold; cursor:pointer; }
+  .card button:hover { background:#2563eb; }
+  .error { color:#ef4444; margin-top:10px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <img class="logo" src="data:image/png;base64,__LOGO2__" alt="Logo">
+    <h1>Sistema de Turnos</h1>
+    <p style="color:#4a6a8a; margin-bottom:20px;">Ingrese su nombre de usuario</p>
+    <form method="POST">
+      <input type="text" name="username" placeholder="Usuario" required autofocus>
+      <button type="submit">Ingresar</button>
+    </form>
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  </div>
+</body>
+</html>
+"""
+
+# ─── PANEL CENTRAL ─────────────────────────────────────────────
+CENTRAL_PAGE = """
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Central - Turnos</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI',sans-serif; background:#0a0a0a; min-height:100vh; padding:20px; }
+  .top { text-align:center; margin-bottom:15px; }
+  .top .logo { height:50px; margin-bottom:5px; }
+  h1 { color:#3b82f6; font-size:1.3em; }
+  .top .user { color:#4a6a8a; font-size:0.9em; margin-top:3px; }
+  .nav-grid { display:flex; justify-content:center; gap:12px; margin:0 auto 25px; max-width:650px; }
+  .nav-card { width:240px; background:#0d0d2b; border-radius:15px; padding:20px; text-align:center; text-decoration:none; color:#fff; border:2px solid #1a3a8a; transition:.3s; cursor:pointer; display:block; }
+  .nav-card:hover { transform:scale(1.04); }
+  .nav-card.pub:hover { border-color:#3b82f6; background:#0a0a2e; }
+  .nav-card.tec:hover { border-color:#60a5fa; background:#0d0d2b; }
+  .nav-card .icon { font-size:2em; margin-bottom:5px; }
+  .nav-card .tit { font-size:1.1em; font-weight:bold; }
+  .section-title { text-align:center; font-size:1.2em; color:#3b82f6; margin:20px 0 10px; font-weight:bold; border-top:2px solid #1a3a8a; padding-top:20px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:15px; max-width:1100px; margin:0 auto 20px; }
+  .card { background:#0d0d2b; border-radius:15px; padding:20px; text-align:center; border:2px solid #1a3a8a; }
+  .card.off { opacity:0.5; }
+  .card .vnum { font-size:1em; color:#e2e8f0; font-weight:bold; }
+  .card .current { font-size:2.5em; font-weight:bold; color:#3b82f6; margin:8px 0; }
+  .card .current.none { color:#4a6a8a; }
+  .card .pend { color:#60a5fa; font-weight:bold; font-size:0.9em; }
+  .card .att { color:#3b82f6; font-weight:bold; }
+  .card .timer { color:#fbbf24; font-weight:bold; font-size:0.85em; margin-top:2px; }
+  .btn { width:100%; padding:10px; background:#2563eb; color:#fff; border:none; border-radius:10px; font-size:1em; cursor:pointer; margin-top:6px; }
+  .btn-off { background:#1a3a8a; }
+  .actions { text-align:center; margin-bottom:20px; }
+  .actions button { padding:10px 20px; margin:0 5px; border:none; border-radius:10px; cursor:pointer; font-weight:bold; }
+  .btn-print { background:#3b82f6; color:#fff; }
+  .btn-reset { background:#dc2626; color:#fff; }
+
+  table { width:100%; max-width:700px; margin:0 auto 20px; border-collapse:collapse; background:#0d0d2b; border-radius:10px; overflow:hidden; }
+  th, td { padding:12px; text-align:center; border-bottom:1px solid #1a3a8a; }
+  th { background:#0a0a2e; color:#3b82f6; }
+  td { color:#e2e8f0; }
+  .back { display:block; text-align:center; color:#3b82f6; text-decoration:none; margin-top:20px; }
+  .back:hover { color:#60a5fa; }
+  .asistencia-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:10px; max-width:1100px; margin:0 auto 15px; }
+  .asist-item { display:flex; align-items:center; justify-content:space-between; gap:8px; background:#0d0d2b; border-radius:10px; padding:8px 12px; border:1px solid #1a3a8a; flex-wrap:wrap; }
+  .asist-item .name { font-weight:bold; color:#e2e8f0; font-size:0.9em; min-width:120px; }
+  .asist-item .btns { display:flex; gap:4px; flex-wrap:wrap; }
+  .asist-item .btns button { padding:4px 10px; border-radius:6px; border:2px solid #1a3a8a; background:#0a0a0a; color:#4a6a8a; cursor:pointer; font-size:0.75em; font-weight:bold; transition:.2s; }
+  .asist-item .btns button.on { border-color:#3b82f6; background:rgba(59,130,246,0.15); color:#3b82f6; }
+  .asist-item .btns button.on.sede { border-color:#3b82f6; background:rgba(59,130,246,0.15); color:#3b82f6; }
+  .asist-item .btns button.on.movil { border-color:#f59e0b; background:rgba(245,158,11,0.15); color:#f59e0b; }
+  .asist-item .btns button.on.mision { border-color:#8b5cf6; background:rgba(139,92,246,0.15); color:#8b5cf6; }
+  .asist-item .btns button.on.ausente { border-color:#ef4444; background:rgba(239,68,68,0.15); color:#ef4444; }
+  .asist-item .btns button.on.incapacidad { border-color:#f97316; background:rgba(249,115,22,0.15); color:#f97316; }
+  .asist-item .btns button.on.consulta { border-color:#14b8a6; background:rgba(20,184,166,0.15); color:#14b8a6; }
+  .asist-btn { margin:0 auto 15px; display:block; padding:10px 25px; background:#2563eb; color:#fff; border:none; border-radius:10px; font-size:1em; font-weight:bold; cursor:pointer; }
+  .asist-btn:hover { background:#1d4ed8; }
+  .btn-report { background:#6366f1; color:#fff; }
+  #reporteSemanal { display:none; max-width:900px; margin:15px auto; background:#0d0d2b; border-radius:12px; padding:20px; overflow-x:auto; border:1px solid #1a3a8a; }
+  @media print {
+    .nav-grid, .grid, .actions, .asistencia-grid, .asist-btn, .back { display:none; }
+    table { box-shadow:none; }
+  }
+</style>
+</head>
+<body>
+  <div class="top">
+    <img class="logo" src="data:image/png;base64,__LOGO2__" alt="Logo">
+    <h1>Sistema de Turnos</h1>
+    <div class="user">Usuario: __USER__</div>
+  </div>
+  <div class="nav-grid">
+    <a class="nav-card pub" href="/" target="_blank">
+      <div class="icon">🖥️</div>
+      <div class="tit">Pantalla Pública</div>
+    </a>
+    <a class="nav-card tec" href="/tecnico" target="_blank">
+      <div class="icon">🔧</div>
+      <div class="tit">Panel Técnicos</div>
+    </a>
+  </div>
+
+  <div class="section-title">Control de Técnicos</div>
+  <div class="grid" id="grid"></div>
+
+  <div class="actions">
+    <button class="btn-print" onclick="window.print()">🖨️ Imprimir informe del día</button>
+    <button class="btn-report" onclick="generarInforme()">📊 Informe semanal</button>
+    <button class="btn-reset" onclick="resetSistema()">🗑️ Reiniciar sistema</button>
+  </div>
+
+  <div id="reporteSemanal"></div>
+
+  <div class="section-title">Asistencia del Día</div>
+  <div class="asistencia-grid" id="asistGrid"></div>
+  <button class="asist-btn" onclick="guardarAsistencia()">💾 Guardar Asistencia</button>
+
+  <table id="report">
+    <thead><tr><th>Técnico</th><th>Estado</th><th>Asistencia</th><th>Espera / Atendidos</th></tr></thead>
+    <tbody id="reportBody"></tbody>
+    <tfoot><tr><th>Total</th><th></th><th></th><th id="totalAtt">0</th></tr></tfoot>
+  </table>
+
+  <a href="/" class="back">← Pantalla pública</a> | <a href="/logout" class="back">Cerrar sesión</a>
+
+<script>
+  const techNames = ['Mauricio Amaya', 'Julio Castillo', 'Jorge Hernandez', 'Yesica Bonilla', 'Alba Zelaya', 'Manuel Herrera', 'William Espiñal', 'Rene Quintanilla'];
+  function render(data) {
+    document.getElementById('waitingCount').textContent = totalEspera(data);
+    const grid = document.getElementById('grid'); grid.innerHTML = '';
+    for (let i = 0; i < 8; i++) {
+      const pend = data.pending[i]; const on = data.active[i];
+      const div = document.createElement('div');
+      div.className = 'win ' + (on ? 'active' : 'off');
+      const atend = (data.attended[i] || []).length;
+      let html = '';
+      if (pend.length > 0) {
+        html = '<div class="num">' + pend[0] + '</div>';
+      } else {
+        html = '<div class="empty">---</div>';
+      }
+      html += '<div class="lbl">' + techNames[i] + (on ? '' : ' (off)') + '</div>';
+      if (pend.length > 0) html += '<div class="count">En espera: ' + pend.length + '</div>';
+      if (atend > 0) html += '<div class="attended">Atendidos: ' + atend + '</div>';
+      div.innerHTML = html;
+      grid.appendChild(div);
+    }
+  }
+  function actualizar() {
+    fetch('/api/estado').then(r=>r.json()).then(data=>{
+      render(data);
+      const ev = data.last_event;
+      if (ev && ev.type === 'llamada' && ev.ts !== ultimoTs) {
+        ultimoTs = ev.ts;
+        document.getElementById('anuncio').className = 'anuncio';
+        document.getElementById('anum').textContent = ev.num;
+        document.getElementById('asub').textContent = 'Técnico ' + techNames[ev.ventanilla-1];
+        document.querySelector('#anuncio .msg').textContent = 'Usuario ' + ev.num + ', el Técnico ' + techNames[ev.ventanilla-1] + ' le atenderá...';
+        hablar(ev.num, techNames[ev.ventanilla-1]);
+      }
+    });
+  }
+  setInterval(()=>{ document.getElementById('clock').textContent = new Date().toLocaleTimeString('es-ES'); }, 1000);
+  actualizar(); setInterval(actualizar, 1000);
+</script>
+</body>
+</html>
+"""
+
+# ─── TECNICOS ─────────────────────────────────────────────────
+techNames = ['Mauricio Amaya', 'Julio Castillo', 'Jorge Hernandez', 'Yesica Bonilla', 'Alba Zelaya', 'Manuel Herrera', 'William Espiñal', 'Rene Quintanilla']
+
+TECH_LOGIN = """
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acceso Tecnico</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Share Tech Mono','Courier New',monospace; background:radial-gradient(ellipse at center,#050510 0%,#000 100%); color:#fff; min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  body::before { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(59,130,246,0.04) 2px,rgba(59,130,246,0.04) 4px); pointer-events:none; }
+  .card { position:relative; background:linear-gradient(135deg,#0a0a2e,#050510); border-radius:16px; padding:45px 40px 35px; width:400px; border:1px solid rgba(59,130,246,0.25); box-shadow:0 0 40px rgba(59,130,246,0.08),inset 0 0 60px rgba(59,130,246,0.03); }
+  .card::after { content:''; position:absolute; top:-1px; left:20%; right:20%; height:2px; background:linear-gradient(90deg,transparent,#3b82f6,transparent); }
+  .card .logo { display:block; width:120px; margin:0 auto 10px; filter:drop-shadow(0 0 15px rgba(59,130,246,0.3)); }
+  .card h1 { color:#3b82f6; font-size:1.3em; letter-spacing:3px; text-transform:uppercase; text-shadow:0 0 20px rgba(59,130,246,0.3); margin-bottom:5px; }
+  .sub { color:#4a6a8a; font-size:0.8em; letter-spacing:2px; margin-bottom:25px; }
+  .card input { width:100%; padding:14px 18px; border-radius:8px; border:1px solid #1a3a8a; background:#050510; color:#3b82f6; font-family:inherit; font-size:1.1em; text-align:center; margin-bottom:15px; letter-spacing:1px; transition:.3s; }
+  .card input:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 20px rgba(59,130,246,0.15); }
+  .card input::placeholder { color:#1a3a8a; letter-spacing:1px; }
+  .card button { width:100%; padding:14px; background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; border:none; border-radius:8px; font-family:inherit; font-size:1.1em; font-weight:bold; cursor:pointer; letter-spacing:2px; text-transform:uppercase; transition:.3s; box-shadow:0 0 20px rgba(59,130,246,0.15); }
+  .card button:hover { background:linear-gradient(135deg,#3b82f6,#2563eb); box-shadow:0 0 30px rgba(59,130,246,0.3); transform:translateY(-2px); }
+  .error { color:#ef4444; margin-top:12px; font-size:0.9em; text-shadow:0 0 10px rgba(239,68,68,0.3); }
+  .card a { display:block; margin-top:20px; color:#1a3a8a; text-decoration:none; font-size:0.85em; transition:.3s; }
+  .card a:hover { color:#4a6a8a; }
+  .scanline { position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.2) 3px,rgba(0,0,0,0.2) 4px); pointer-events:none; }
+</style>
+</head>
+<body>
+  <div class="scanline"></div>
+  <div class="card">
+    <img class="logo" src="data:image/webp;base64,__LOGO3__" alt="Logo">
+    <h1>Acceso Técnico</h1>
+    <div class="sub">SISTEMA DE TURNOS v2.0</div>
+    <form method="POST" action="/tecnico">
+      <input type="text" name="username" placeholder="INGRESE SU NOMBRE" required autofocus>
+      <button type="submit">INGRESAR</button>
+    </form>
+    {% if error %}<div class="error">! {{ error }} !</div>{% endif %}
+  </div>
+</body>
+</html>
+"""
+
+# ─── VISTA DEL TECNICO (solo su ventanilla) ───────────────────
+TECH_PAGE = """
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>__NAME__</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Share Tech Mono','Courier New',monospace; background:radial-gradient(ellipse at center,#050510 0%,#000 100%); min-height:100vh; padding:20px; overflow-x:hidden; display:flex; align-items:center; justify-content:center; }
+  body::before { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(59,130,246,0.04) 2px,rgba(59,130,246,0.04) 4px); pointer-events:none; }
+  .scanline { position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.2) 3px,rgba(0,0,0,0.2) 4px); pointer-events:none; }
+  .card { max-width:520px; width:100%; margin:0; background:linear-gradient(135deg,#0a0a2e,#050510); border-radius:16px; padding:30px; text-align:center; border:1px solid rgba(59,130,246,0.2); box-shadow:0 0 40px rgba(59,130,246,0.06),inset 0 0 60px rgba(59,130,246,0.02); position:relative; }
+  .card::after { content:''; position:absolute; top:-1px; left:20%; right:20%; height:2px; background:linear-gradient(90deg,transparent,#3b82f6,transparent); }
+  .header { display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:5px; }
+  .header .icon { font-size:2em; filter:drop-shadow(0 0 10px rgba(59,130,246,0.3)); }
+  .header .name { color:#3b82f6; font-size:1.8em; letter-spacing:2px; text-shadow:0 0 15px rgba(59,130,246,0.2); }
+  .status-bar { display:flex; justify-content:space-between; align-items:center; background:rgba(59,130,246,0.07); border:1px solid rgba(59,130,246,0.15); border-radius:8px; padding:12px 15px; margin:15px 0; }
+  .status-bar .label { color:#b0c4d8; font-size:1.3em; letter-spacing:1px; }
+  .status-bar .label strong { color:#3b82f6; }
+  .pend-list { text-align:left; margin:10px 0; max-height:260px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:#3b82f6 transparent; }
+  .pend-list::-webkit-scrollbar { width:4px; }
+  .pend-list::-webkit-scrollbar-thumb { background:#3b82f6; border-radius:2px; }
+  .pend-item { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:rgba(59,130,246,0.03); border-radius:8px; margin-bottom:6px; border:1px solid rgba(59,130,246,0.08); transition:.3s; }
+  .pend-item:hover { border-color:rgba(59,130,246,0.2); background:rgba(59,130,246,0.06); }
+  .pend-item .pos { color:#8ab4c8; font-size:1.2em; }
+  .pend-item .num { font-size:2.5em; font-weight:bold; text-shadow:0 0 12px rgba(59,130,246,0.25); }
+  .pend-item.active .num { color:#fbbf24; text-shadow:0 0 20px rgba(251,191,36,0.4); }
+  .pend-item.active { background:rgba(251,191,36,0.05); border-color:rgba(251,191,36,0.3); }
+  .pend-item.pending .num { color:#ef4444; }
+  .pend-item.attended .num { color:#22c55e; }
+  .pend-item.attended { opacity:0.7; }
+  .empty-pend { color:#4a6a8a; text-align:center; padding:25px; font-size:1.5em; letter-spacing:1px; }
+  .empty-pend .led { display:inline-block; width:8px; height:8px; background:#4a6a8a; border-radius:50%; margin-right:8px; vertical-align:middle; animation:blink 2s infinite; }
+  @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+  .btn { width:100%; padding:16px; background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; border:none; border-radius:8px; font-family:inherit; font-size:1.8em; font-weight:bold; cursor:pointer; letter-spacing:2px; text-transform:uppercase; transition:.3s; box-shadow:0 0 20px rgba(59,130,246,0.12); margin-top:12px; }
+  .btn:hover:not(:disabled) { background:linear-gradient(135deg,#3b82f6,#2563eb); box-shadow:0 0 30px rgba(59,130,246,0.25); transform:translateY(-2px); }
+  .btn:disabled { background:#0a0a2e; color:#4a6a8a; cursor:not-allowed; box-shadow:none; border:1px solid #1a3a8a; }
+  .btn-off { background:#0a0a2e; color:#4a6a8a; cursor:not-allowed; box-shadow:none; border:1px solid #1a3a8a; }
+  .off-msg { color:#ef4444; font-size:1.3em; margin:12px 0; text-shadow:0 0 10px rgba(239,68,68,0.2); }
+  .back { display:block; text-align:center; margin-top:18px; color:#4a6a8a; text-decoration:none; font-size:1.2em; letter-spacing:1px; transition:.3s; }
+  .back:hover { color:#b0c4d8; }
+  .divider { height:1px; background:linear-gradient(90deg,transparent,rgba(59,130,246,0.15),transparent); margin:10px 0; }
+  .section-header { color:#60a5fa; font-size:1.1em; font-weight:bold; letter-spacing:1px; margin:8px 0 4px 0; text-align:left; padding-left:4px; }
+  .asist-tech { margin:8px 0; display:flex; align-items:center; justify-content:center; gap:6px; flex-wrap:wrap; }
+  .asist-tech .lbl { color:#4a6a8a; font-size:1.2em; letter-spacing:1px; width:100%; text-align:center; margin-bottom:4px; }
+  .asist-tech button { padding:6px 12px; border-radius:6px; border:2px solid #1a3a8a; background:#050510; color:#4a6a8a; font-family:inherit; font-size:1.1em; cursor:pointer; transition:.3s; letter-spacing:1px; }
+  .asist-tech button.on.sede { border-color:#3b82f6; background:rgba(59,130,246,0.1); color:#3b82f6; }
+  .asist-tech button.on.movil { border-color:#f59e0b; background:rgba(245,158,11,0.1); color:#f59e0b; }
+  .asist-tech button.on.mision { border-color:#8b5cf6; background:rgba(139,92,246,0.1); color:#8b5cf6; }
+  .asist-tech button.on.ausente { border-color:#ef4444; background:rgba(239,68,68,0.1); color:#ef4444; }
+  .asist-tech button.on.incapacidad { border-color:#f97316; background:rgba(249,115,22,0.1); color:#f97316; }
+  .asist-tech button.on.consulta { border-color:#14b8a6; background:rgba(20,184,166,0.1); color:#14b8a6; }
+</style>
+</head>
+<body>
+  <div class="scanline"></div>
+  <div class="card" id="card">
+    <div class="header">
+      <span class="icon">🖥️</span>
+      <span class="name">__NAME__</span>
+    </div>
+    <div class="divider"></div>
+    <div class="status-bar">
+      <span class="label">👤 Tienes <strong id="count">0</strong> usuarios en espera</span><span class="label" style="margin-left:10px;">⏱️ En atención: <strong id="timer">0:00</strong></span>
+    </div>
+    <div class="divider"></div>
+    <div class="section-header">🟡 EN ATENCIÓN</div>
+    <div class="pend-list" id="currentList" style="max-height:120px;">
+      <div class="empty-pend">NINGÚN TURNO EN ATENCIÓN</div>
+    </div>
+    <div class="divider"></div>
+    <div class="section-header">🔴 EN ESPERA</div>
+    <div class="pend-list" id="pendList">
+      <div class="empty-pend"><span class="led"></span>SIN TURNOS EN ESPERA</div>
+    </div>
+    <div class="divider"></div>
+    <div class="section-header">🟢 ATENDIDOS</div>
+    <div class="pend-list" id="attendedList" style="max-height:160px;">
+      <div class="empty-pend" style="color:#22c55e;">SIN ATENDIDOS</div>
+    </div>
+    <div id="offmsg"></div>
+    <button class="btn" id="btnAtender" onclick="atender()">▶ ATENDER SIGUIENTE</button>
+  </div>
+  <a href="/logout-tecnico" class="back">[ ← CAMBIAR TÉCNICO ]</a>
+
+<script>
+  const v = __V__;
+  function render(data) {
+    if (!data || !data.pending || !data.active) { console.warn('render: invalid data', data); return; }
+    const pend = data.pending[v-1] || [];
+    const atend = data.attended[v-1] || [];
+    const on = data.active[v-1];
+    const countEl = document.getElementById('count');
+    if (countEl) countEl.textContent = pend.length;
+    const list = document.getElementById('pendList');
+    if (list) {
+      list.innerHTML = '';
+      if (pend.length === 0) {
+        list.innerHTML = '<div class="empty-pend"><span class="led"></span>SIN TURNOS EN ESPERA</div>';
+      } else {
+        const currentNum = data.current ? data.current[v-1] : null;
+      const currentStart = data.current_start ? data.current_start[v-1] : null;
+      if (currentStart) {
+        const elapsed = Math.floor((Date.now() / 1000) - currentStart);
+        const mins = Math.floor(elapsed / 60);
+        const secs = elapsed % 60;
+        const timerEl = document.getElementById('timer');
+        if (timerEl) timerEl.textContent = mins + ':' + (secs < 10 ? '0' : '') + secs;
+      }
+      const currentList = document.getElementById('currentList');
+      if (currentList) {
+        currentList.innerHTML = '';
+        if (currentNum !== null && currentNum !== undefined) {
+          const cItem = document.createElement('div');
+          cItem.className = 'pend-item active';
+          cItem.innerHTML = '<span class="pos">EN ATENCIÓN</span><span class="num">' + currentNum + '</span>';
+          currentList.appendChild(cItem);
+        } else {
+          currentList.innerHTML = '<div class="empty-pend">NINGÚN TURNO EN ATENCIÓN</div>';
+        }
+      }
+      pend.forEach((n, idx) => {
+          const item = document.createElement('div');
+          item.className = n === currentNum ? 'pend-item active' : 'pend-item pending';
+          item.innerHTML = '<span class="pos">#' + (idx+1) + '</span><span class="num">' + n + '</span>';
+          list.appendChild(item);
+        });
+      }
+    }
+    const alist = document.getElementById('attendedList');
+    if (alist) {
+      alist.innerHTML = '';
+      if (atend.length === 0) {
+        alist.innerHTML = '<div class="empty-pend" style="color:#22c55e;">SIN ATENDIDOS</div>';
+      } else {
+        atend.slice(-10).reverse().forEach((n, idx) => {
+          const item = document.createElement('div');
+          item.className = 'pend-item attended';
+          item.innerHTML = '<span class="pos">#' + (atend.length - idx) + '</span><span class="num">' + n + '</span>';
+          alist.appendChild(item);
+        });
+      }
+    }
+    const btn = document.getElementById('btnAtender');
+    const off = document.getElementById('offmsg');
+    if (btn) {
+      if (!on) {
+        btn.disabled = true; btn.textContent = '⚙ INACTIVO';
+        btn.className = 'btn-off';
+        if (off) off.innerHTML = '<div class="off-msg">! SISTEMA INACTIVO - Contacte al administrador !</div>';
+      } else {
+        btn.disabled = (pend.length === 0);
+        btn.textContent = pend.length > 0 ? '▶ ATENDER SIGUIENTE' : '⏻ ESPERANDO TURNOS';
+        btn.className = 'btn';
+        if (off) off.innerHTML = '';
+      }
+    }
+  }
+  function atender() {
+    const btn = document.getElementById('btnAtender');
+    if (!btn) return;
+    btn.disabled = true;
+    btn.textContent = '⏳ ATENDIENDO...';
+    fetch('/api/atender_siguiente/' + v, {method:'POST'})
+      .then(r=>r.json()).then(d=>{
+        if (!d.success && d.error) alert(d.error);
+        actualizar();
+      }).catch(e => { console.error('atender error:', e); btn.disabled = false; btn.textContent = '▶ ATENDER SIGUIENTE'; });
+  }
+  function actualizar() {
+    fetch('/api/estado').then(r=>r.json()).then(render).catch(e => console.error('actualizar error:', e));
+  }
+  actualizar(); setInterval(actualizar, 3000);
 </script>
 </body>
 </html>
@@ -665,7 +1060,7 @@ CENTRAL_PAGE = """
   function toggle(v) { fetch('/api/toggle_tecnico/' + v, {method:'POST'}).then(()=>actualizar()); }
   function resetSistema() { if (confirm('¿Reiniciar todo el sistema?')) fetch('/api/reset', {method:'POST'}).then(()=>actualizar()); }
   function actualizar() { fetch('/api/estado').then(r=>r.json()).then(render).catch(e => console.error('Error polling:', e)); }
-  initAsistencia(); actualizar(); setInterval(actualizar, 1500);
+  actualizar(); setInterval(actualizar, 1500);
 </script>
 </body>
 </html>
